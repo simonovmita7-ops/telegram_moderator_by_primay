@@ -9,7 +9,7 @@ import urllib.parse
 from pathlib import Path
 from aiohttp import web
 from sqlalchemy import select, func
-from bot.models import Violation, Warning as DBWarning, Mute, Ban, GroupSettings, Group, GroupAdmin
+from bot.models import Violation, Warning as DBWarning, Mute, Kick, Ban, GroupSettings, Group, GroupAdmin
 from bot.config import BASE_DIR, Settings
 
 logger = logging.getLogger(__name__)
