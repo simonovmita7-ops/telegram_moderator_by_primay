@@ -358,20 +358,6 @@
   </div>
 </div>
 
-<div id="api-setup-card" class="card" style="display:none; margin: 16px; border-color: var(--danger);">
-  <div class="card-title" style="color:var(--danger)"><span>⚠️</span>Настройка API Сервера</div>
-  <p style="font-size:12px; color:var(--text2); margin-bottom:12px;" id="api-error-text">
-    Не удалось связаться с сервером бота. Укажите публичный URL-адрес вашего API сервера (например, http://95.213.255.12:8765):
-  </p>
-  <div class="input-row">
-    <input type="text" id="input-api-url" class="input-text" placeholder="http://ВАШ_IP_VPS:8765">
-    <button class="btn btn-primary" onclick="saveApiUrl()">💾 Сохранить</button>
-  </div>
-  <p style="font-size:11px; color:var(--text2)">
-    После сохранения страница перезагрузится для проверки связи. Если вы запустили бота локально, используйте ngrok адрес.
-  </p>
-</div>
-
 <div class="tabs">
   <button class="tab active" onclick="switchTab('tab-main',this)">
     <span class="tab-icon">📱</span>Mini App
@@ -480,8 +466,9 @@
 </div>
 
 <script>
-// Автоматически определяем базовый адрес API из localStorage или берем относительный путь
-let API_BASE = localStorage.getItem('api_base_url') || ""; 
+// Настройте хост API при необходимости (например: "http://95.213.255.12:8765")
+// Если оставить пустым "", будут использоваться относительные пути
+const API_BASE = "https://reapprove-roundup-coyness.ngrok-free.dev"; 
 
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -493,7 +480,7 @@ let appData = {
   groups: [],
   selected_group_id: null,
   global_subscription_channel: null,
-  stats: { violations: 0, warnings: 0, mutes: 0, bans: 0 },
+  stats: { violations: 0, warnings: 0, mutes: 0, kicks: 0 },
   violations: [],
   rules: [],
   rules_raw: "",
@@ -526,29 +513,6 @@ function getHeaders() {
   return headers;
 }
 
-// Сохранение адреса API сервера в localStorage
-function saveApiUrl() {
-  const url = document.getElementById('input-api-url').value.trim();
-  if (url) {
-    const cleaned = url.endsWith('/') ? url.slice(0, -1) : url;
-    localStorage.setItem('api_base_url', cleaned);
-  } else {
-    localStorage.removeItem('api_base_url');
-  }
-  location.reload();
-}
-
-// Отображение ошибки соединения и карточки настройки
-function handleConnectionError(msg) {
-  document.getElementById('api-error-text').innerHTML = `⚠️ <b>${msg}</b><br><br>Укажите публичный URL-адрес вашего API сервера бота (например, <code>http://95.213.255.12:8765</code>):`;
-  document.getElementById('api-setup-card').style.display = 'block';
-  document.getElementById('input-api-url').value = API_BASE;
-  
-  // Отключаем бесконечный спиннер
-  document.getElementById('header-title').textContent = "Ошибка связи";
-  document.getElementById('group-select').innerHTML = '<option value="">Ошибка API</option>';
-}
-
 // Загрузка данных с сервера
 async function loadGroupData(groupId = "") {
   try {
@@ -558,25 +522,13 @@ async function loadGroupData(groupId = "") {
     }
     const r = await fetch(url, { headers: getHeaders() });
     if (r.ok) {
-      const text = await r.text();
-      try {
-        appData = JSON.parse(text);
-        
-        // Скрываем предупреждение при успешном ответе
-        document.getElementById('api-setup-card').style.display = 'none';
-        
-        render();
-      } catch (parseError) {
-        console.error("Ответ сервера не является JSON", parseError);
-        handleConnectionError("Сервер вернул некорректный ответ. Возможно, неверно указан адрес API.");
-      }
+      appData = await r.json();
+      render();
     } else {
       console.error("Ошибка загрузки данных", r.status);
-      handleConnectionError(`Сервер вернул код ошибки: ${r.status}`);
     }
   } catch (e) {
     console.error("Сбой запроса к API", e);
-    handleConnectionError("Не удалось подключиться к API серверу бота.");
   }
 }
 
