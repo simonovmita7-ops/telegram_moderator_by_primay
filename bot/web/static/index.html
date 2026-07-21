@@ -509,7 +509,10 @@ function showLoader(show = true) {
 
 // Получить X-Telegram-Init-Data заголовки
 function getHeaders() {
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = { 
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true'
+  };
   if (tg && tg.initData) {
     headers['X-Telegram-Init-Data'] = tg.initData;
   }

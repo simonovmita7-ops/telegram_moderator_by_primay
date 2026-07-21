@@ -25,7 +25,7 @@ async def cors_middleware(app, handler):
         
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Telegram-Init-Data, Authorization"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Telegram-Init-Data, Authorization, ngrok-skip-browser-warning"
         return response
     return middleware_handler
 
