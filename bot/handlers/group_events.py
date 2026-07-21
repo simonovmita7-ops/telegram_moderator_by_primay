@@ -5,8 +5,9 @@
 from __future__ import annotations
 
 import logging
+import asyncio
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatMemberStatus, ChatType
 from telegram.ext import ContextTypes
 
@@ -16,6 +17,33 @@ from bot.services.logging_service import LoggingService
 from bot.services.settings_service import SettingsService
 
 logger = logging.getLogger(__name__)
+
+
+async def check_rules_delayed(bot, db, settings_svc, chat_id, chat_title) -> None:
+    # Ожидание 15 минут
+    await asyncio.sleep(900)
+    try:
+        async with db.session() as session:
+            from bot.services.permissions import PermissionService
+            perm = PermissionService()
+            group = await perm.get_group_by_telegram_id(session, chat_id)
+            if not group or not group.is_active:
+                return
+            gs = await settings_svc.get_or_create(session, group.id)
+            has_rules = gs.rules_text is not None and len(gs.rules_text.strip()) > 0
+
+        if not has_rules:
+            await bot.send_message(
+                chat_id,
+                "⚠️ В настройках не добавлены правила."
+            )
+        else:
+            await bot.send_message(
+                chat_id,
+                "✅ Правила подключены."
+            )
+    except Exception as e:
+        logger.warning(f"Ошибка отложенной проверки правил для группы {chat_title}: {e}")
 
 
 async def my_chat_member_handler(
@@ -70,14 +98,21 @@ async def my_chat_member_handler(
                 actor_telegram_id=user.id,
             )
 
+        # Запуск отложенной проверки правил (15 минут) в фоне
+        asyncio.create_task(check_rules_delayed(context.bot, db, settings_svc, chat.id, chat.title))
+
         # Уведомляем добавившего в ЛС
         if owner_id:
             try:
+                kb = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✏️ Добавить правила", callback_data=f"gs:{chat.id}:rules_txt_set")]
+                ])
                 await context.bot.send_message(
                     user.id,
                     f"✅ Бот подключён к группе «{chat.title}».\n"
                     f"Вы назначены владельцем.\n"
-                    f"Откройте /start → Мои группы для настройки.",
+                    f"Пожалуйста, добавьте правила для группы:",
+                    reply_markup=kb,
                 )
             except Exception:
                 pass

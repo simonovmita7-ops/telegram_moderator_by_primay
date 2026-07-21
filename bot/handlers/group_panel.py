@@ -52,7 +52,7 @@ async def group_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await query.answer()
     data = query.data
     if data.startswith("group:"):
-        await _open_group_panel(query, context, int(data.split(":")[1]))
+        await _show_rules_intercept(query, context, int(data.split(":")[1]))
     elif data.startswith("gp:"):
         parts = data.split(":")
         await _group_panel_action(query, context, int(parts[1]), parts[2])
@@ -60,6 +60,34 @@ async def group_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await _settings_action(query, context, data)
     elif data.startswith("ga:"):
         await _admins_action(query, context, data)
+
+
+async def _show_rules_intercept(query, context, group_tg_id):
+    db = get_db(); perm = PermissionService(); gs_svc = SettingsService()
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    async with db.session() as session:
+        access = await perm.check_panel_access(session, context.bot, group_tg_id, query.from_user.id)
+        if not access.allowed:
+            await query.edit_message_text(f"🚫 Доступ запрещён: {access.reason}", reply_markup=back_to_main_keyboard()); return
+        group = await perm.get_group_by_telegram_id(session, group_tg_id)
+        if group is None: return
+        title = group.title
+        gs = await gs_svc.get_or_create(session, group.id)
+        has_rules = gs.rules_text is not None and len(gs.rules_text.strip()) > 0
+
+    if has_rules:
+        await _open_group_panel(query, context, group_tg_id)
+    else:
+        text = (
+            f"📝 <b>Настройка правил группы</b>\n\n"
+            f"Для группы «<b>{title}</b>» еще не настроены индивидуальные правила модерации ИИ.\n\n"
+            f"Пожалуйста, добавьте правила для корректной и стабильной работы бота."
+        )
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✏️ Добавить правила", callback_data=f"gs:{group_tg_id}:rules_txt_set")],
+            [InlineKeyboardButton("⚙️ Панель управления", callback_data=f"gp:{group_tg_id}:panel_direct")],
+        ])
+        await query.edit_message_text(text, parse_mode="HTML", reply_markup=kb)
 
 
 async def _open_group_panel(query, context, group_tg_id):
@@ -85,7 +113,9 @@ async def _group_panel_action(query, context, group_tg_id, action):
         group = await perm.get_group_by_telegram_id(session, group_tg_id)
         if group is None: return
         gs_service = SettingsService()
-        if action == "settings":
+        if action == "panel_direct":
+            await _open_group_panel(query, context, group_tg_id)
+        elif action == "settings":
             await query.edit_message_text("⚙️ <b>Настройки группы</b>", parse_mode="HTML",
                                            reply_markup=settings_keyboard(group_tg_id))
         elif action == "violators":

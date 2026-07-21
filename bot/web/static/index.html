@@ -358,6 +358,9 @@
   </div>
 </div>
 
+<div id="api-error-display" class="card" style="display:none; margin: 16px; border-color: var(--danger); color: var(--danger); font-size: 13px; font-weight: 500; background: rgba(239, 68, 68, 0.1); line-height: 1.4;">
+</div>
+
 <div class="tabs">
   <button class="tab active" onclick="switchTab('tab-main',this)">
     <span class="tab-icon">📱</span>Mini App
@@ -515,6 +518,9 @@ function getHeaders() {
 
 // Загрузка данных с сервера
 async function loadGroupData(groupId = "") {
+  const errorDiv = document.getElementById('api-error-display');
+  if (errorDiv) errorDiv.style.display = 'none';
+
   try {
     let url = `${API_BASE}/api/miniapp/data`;
     if (groupId) {
@@ -522,14 +528,34 @@ async function loadGroupData(groupId = "") {
     }
     const r = await fetch(url, { headers: getHeaders() });
     if (r.ok) {
-      appData = await r.json();
-      render();
+      const contentType = r.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        appData = await r.json();
+        render();
+      } else {
+        const text = await r.text();
+        showError(`Ошибка: Сервер вернул HTML вместо JSON. Возможно, API_BASE настроен неверно или Vercel перенаправил запрос. Ответ сервера: ${text.substring(0, 150)}`);
+      }
     } else {
-      console.error("Ошибка загрузки данных", r.status);
+      showError(`Ошибка API: Сервер вернул статус ${r.status}`);
     }
   } catch (e) {
-    console.error("Сбой запроса к API", e);
+    showError(`Не удалось подключиться к серверу API: ${e.message}. Проверьте, запущен ли бот и верен ли API_BASE.`);
   }
+}
+
+function showError(msg) {
+  console.error(msg);
+  const errorDiv = document.getElementById('api-error-display');
+  if (errorDiv) {
+    errorDiv.style.display = 'block';
+    errorDiv.textContent = msg;
+  }
+  const groupSelect = document.getElementById('group-select');
+  if (groupSelect) {
+    groupSelect.innerHTML = `<option value="">Ошибка загрузки</option>`;
+  }
+  document.getElementById('header-title').textContent = "Ошибка API";
 }
 
 // Изменение выбранной группы
