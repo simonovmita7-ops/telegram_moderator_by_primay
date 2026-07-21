@@ -130,8 +130,6 @@ def main() -> None:
         # Запуск веб-сервера Mini App
         from bot.web.server import run_server
         runner = await run_server(
-            host=settings.webapp_host,
-            port=settings.webapp_port,
             db=db_module.db,
             rules_loader=rules_loader,
             bot=app.bot,

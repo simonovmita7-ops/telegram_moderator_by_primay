@@ -31,8 +31,6 @@ class Settings:
     claude_model: str = "claude-3-5-haiku-20241022"
     ai_context_messages: int = 10
     ai_request_timeout: float = 60.0
-    webapp_host: str = "127.0.0.1"
-    webapp_port: int = 8765
     webapp_url: str = ""
     subscription_channel: str | None = None
 
@@ -69,8 +67,6 @@ def load_settings() -> Settings:
         log_file=log_file,
         ai_context_messages=int(os.getenv("AI_CONTEXT_MESSAGES", "10")),
         ai_request_timeout=float(os.getenv("AI_REQUEST_TIMEOUT", "60")),
-        webapp_host=os.getenv("WEBAPP_HOST", "127.0.0.1"),
-        webapp_port=int(os.getenv("WEBAPP_PORT", "8765")),
         webapp_url=os.getenv("WEBAPP_URL", ""),
         subscription_channel=os.getenv("SUBSCRIPTION_CHANNEL", "").strip() or None,
     )
