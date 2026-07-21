@@ -13,7 +13,6 @@ def group_panel_keyboard(group_telegram_id: int) -> InlineKeyboardMarkup:
          InlineKeyboardButton("📜 История", callback_data=f"gp:{group_telegram_id}:history")],
         [InlineKeyboardButton("🔇 Муты", callback_data=f"gp:{group_telegram_id}:mutes"),
          InlineKeyboardButton("🚪 Кики", callback_data=f"gp:{group_telegram_id}:kicks")],
-        [InlineKeyboardButton("⛔ Баны", callback_data=f"gp:{group_telegram_id}:bans")],
         [InlineKeyboardButton("🧠 ИИ-модерация", callback_data=f"gp:{group_telegram_id}:ai"),
          InlineKeyboardButton("📊 Статистика", callback_data=f"gp:{group_telegram_id}:gstats")],
         [InlineKeyboardButton("👮 Администраторы", callback_data=f"gp:{group_telegram_id}:admins")],

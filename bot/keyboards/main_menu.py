@@ -4,7 +4,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 def main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📱 Mini App", web_app=WebAppInfo(url="https://telegram-moderator-by-primay.vercel.app"))],
+        [InlineKeyboardButton("📱 Mini App", web_app=WebAppInfo(url="https://telegram-moderator-by-primay.vercel.app/"))],
         [InlineKeyboardButton("📋 Мои группы", callback_data="menu:groups")],
         [InlineKeyboardButton("⚙️ Настройки", callback_data="menu:settings")],
         [InlineKeyboardButton("📊 Статистика", callback_data="menu:stats")],

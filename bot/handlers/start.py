@@ -10,12 +10,13 @@ from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 from bot.database import get_db
 from bot.keyboards.main_menu import back_to_main_keyboard, main_menu_keyboard
+from bot.services.permissions import PermissionService
 
 logger = logging.getLogger(__name__)
 
 WELCOME_TEXT = (
     "👋 <b>Telegram-бот модератор</b>\n\n"
-    "Я автоматически модерирую группы строго по файлу <b>правила.txt</b>.\n\n"
+    "Я автоматически модерирую группы по правилам, установленным через <b>Mini App</b> или команду <code>/RulesAdd</code>.\n\n"
     "Добавьте меня в группу и назначьте администратором.\n\n"
     "Управление — только через это меню:"
 )
@@ -26,16 +27,42 @@ HELP_TEXT = (
     "1. Добавьте бота в группу\n"
     "2. Назначьте администратором\n"
     "3. Откройте «Мои группы» здесь\n\n"
-    "<b>Команды в ЛС с ботом:</b>\n"
+    "<b>Команны в ЛС с ботом:</b>\n"
+    "/RulesAdd — задать индивидуальные правила для группы\n"
     "/addword слово — добавить запрещённое слово\n"
     "/delword слово — удалить запрещённое слово\n"
     "/addexc слово — добавить слово-исключение\n"
     "/delexc слово — удалить слово-исключение\n\n"
     "<b>Правила:</b>\n"
-    "Редактируйте файл правила.txt — бот подхватит изменения мгновенно.\n\n"
+    "Настройте индивидуальные правила через Mini App или команду <code>/RulesAdd</code>.\n\n"
     "<b>Наказания:</b>\n"
-    "Предупреждения → муты → кики → баны"
+    "Предупреждения → муты → кики"
 )
+
+
+async def rulesadd_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_message is None or update.effective_user is None: return
+    user_id = update.effective_user.id
+    db = get_db(); perm = PermissionService()
+    async with db.session() as session:
+        groups = await perm.get_manageable_groups(session, user_id)
+    if not groups:
+        await update.effective_message.reply_text(
+            "📋 У вас пока нет групп. Добавьте бота в группу в качестве администратора."
+        )
+        return
+    
+    group_tuples = [(g.telegram_id, g.title) for g in groups]
+    rows = [
+        [InlineKeyboardButton(title[:40], callback_data=f"gs:{tg_id}:rules_txt_set")]
+        for tg_id, title in group_tuples
+    ]
+    rows.append([InlineKeyboardButton("◀️ Главное меню", callback_data="menu:main")])
+    await update.effective_message.reply_text(
+        "📝 <b>Установка правил</b>\n\nВыберите группу для настройки правил:",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(rows)
+    )
 
 
 def parse_channel_username_or_id(link: str) -> str | int | None:

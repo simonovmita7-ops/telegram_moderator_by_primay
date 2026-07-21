@@ -134,7 +134,7 @@ async def handle_api_data(request):
                 "violations": (await session.scalar(select(func.count(Violation.id)).where(Violation.group_id == group.id))) or 0,
                 "warnings": (await session.scalar(select(func.count(DBWarning.id)).where(DBWarning.group_id == group.id))) or 0,
                 "mutes": (await session.scalar(select(func.count(Mute.id)).where(Mute.group_id == group.id))) or 0,
-                "bans": (await session.scalar(select(func.count(Ban.id)).where(Ban.group_id == group.id))) or 0,
+                "kicks": (await session.scalar(select(func.count(Kick.id)).where(Kick.group_id == group.id))) or 0,
             }
             
             result = await session.execute(

@@ -18,11 +18,11 @@ class PunishmentDecision:
     """Решение о наказании."""
 
     punishment_type: PunishmentType
-    duration_seconds: int | None  # None для permanent ban / warning
+    duration_seconds: int | None  # None для default duration / warning
     reason: str
     next_on_repeat: str
     delete_message: bool = True
-    instant: bool = False  # мгновенный бан без эскалации
+    instant: bool = False  # мгновенный кик без эскалации
 
 
 # Длительности наказаний в секундах
@@ -79,10 +79,10 @@ class PunishmentService:
         )
         offense_num = count + 1  # текущее — следующее по счёту
 
-        # Угрозы и тяжёлые нарушения — мгновенный бан
+        # Угрозы и тяжёлые нарушения — мгновенный кик
         if cat in (ViolationCategory.THREAT, ViolationCategory.VIOLENCE):
             return PunishmentDecision(
-                punishment_type=PunishmentType.BAN,
+                punishment_type=PunishmentType.KICK,
                 duration_seconds=None,
                 reason=f"Тяжёлое нарушение: {cat.value}",
                 next_on_repeat="—",
@@ -91,7 +91,7 @@ class PunishmentService:
 
         if severity >= 5 and auto_ban_enabled:
             return PunishmentDecision(
-                punishment_type=PunishmentType.BAN,
+                punishment_type=PunishmentType.KICK,
                 duration_seconds=None,
                 reason=f"Критическая severity={severity}",
                 next_on_repeat="—",
@@ -113,7 +113,7 @@ class PunishmentService:
                 )
             return PunishmentDecision(
                 PunishmentType.KICK, THREE_DAYS,
-                "Повторное оскорбление семьи", "Повтор → бан",
+                "Повторное оскорбление семьи", "Повтор → кик",
             )
 
         if cat == ViolationCategory.SPAM:
@@ -129,7 +129,7 @@ class PunishmentService:
                 )
             return PunishmentDecision(
                 PunishmentType.KICK, THREE_HOURS,
-                "Систематический спам", "Следующее → бан",
+                "Систематический спам", "Следующее → кик",
             )
 
         if cat == ViolationCategory.ADULT:
@@ -140,7 +140,7 @@ class PunishmentService:
                 )
             return PunishmentDecision(
                 PunishmentType.KICK, TWO_DAYS,
-                "Повторный 18+ контент", "Следующее → бан",
+                "Повторный 18+ контент", "Следующее → кик",
             )
 
         if cat == ViolationCategory.STICKER_ABUSE:
@@ -151,7 +151,7 @@ class PunishmentService:
                 )
             return PunishmentDecision(
                 PunishmentType.KICK, ONE_DAY,
-                "Медиа без согласия после предупреждения", "Следующее → бан",
+                "Медиа без согласия после предупреждения", "Следующее → кик",
             )
 
         if cat == ViolationCategory.CONFLICT:
@@ -168,7 +168,7 @@ class PunishmentService:
         if cat == ViolationCategory.LEAK:
             return PunishmentDecision(
                 PunishmentType.KICK, THREE_DAYS,
-                "Слив переписки", "Повтор → бан",
+                "Слив переписки", "Повтор → кик",
             )
 
         if cat == ViolationCategory.POLL_ABUSE:
@@ -179,7 +179,7 @@ class PunishmentService:
                 )
             return PunishmentDecision(
                 PunishmentType.KICK, TWO_DAYS,
-                "Повторное нарушение через опрос", "Следующее → бан",
+                "Повторное нарушение через опрос", "Следующее → кик",
             )
 
         # insult, advertisement, и прочие — по рекомендации ИИ с дефолтом
@@ -187,14 +187,13 @@ class PunishmentService:
             "warning": PunishmentType.WARNING,
             "mute": PunishmentType.MUTE,
             "kick": PunishmentType.KICK,
-            "ban": PunishmentType.BAN,
+            "ban": PunishmentType.KICK,
         }
         ptype = action_map.get(ai_action, PunishmentType.WARNING)
 
         durations = {
             PunishmentType.MUTE: ONE_DAY,
             PunishmentType.KICK: ONE_DAY,
-            PunishmentType.BAN: None,
             PunishmentType.WARNING: None,
         }
         return PunishmentDecision(

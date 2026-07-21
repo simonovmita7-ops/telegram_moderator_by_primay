@@ -96,8 +96,6 @@ async def _group_panel_action(query, context, group_tg_id, action):
             await _show_punishments(query, session, group, Mute, "🔇 Активные муты")
         elif action == "kicks":
             await _show_punishments(query, session, group, Kick, "🚪 Активные кики")
-        elif action == "bans":
-            await _show_punishments(query, session, group, Ban, "⛔ Активные баны")
         elif action == "ai":
             gs = await gs_service.get_or_create(session, group.id)
             await query.edit_message_text("🧠 <b>ИИ-модерация</b>\n\nРаботает строго по правила.txt",

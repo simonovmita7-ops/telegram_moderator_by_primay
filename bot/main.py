@@ -18,7 +18,7 @@ from bot.handlers.group_panel import admin_id_message, group_callback
 from bot.handlers.moderation import (
     addword_command, delword_command, addexc_command, delexc_command, group_message_handler
 )
-from bot.handlers.start import menu_callback, start_command
+from bot.handlers.start import menu_callback, start_command, rulesadd_command
 from bot.scheduler.jobs import SchedulerService
 from bot.services.logging_service import LoggingService
 from bot.services.moderation import ModerationService
@@ -56,6 +56,8 @@ def build_application(settings: Settings) -> Application:
 
     # Команды в ЛС
     app.add_handler(CommandHandler("start", start_command, filters=filters.ChatType.PRIVATE))
+    app.add_handler(CommandHandler("rulesadd", rulesadd_command, filters=filters.ChatType.PRIVATE))
+    app.add_handler(CommandHandler("RulesAdd", rulesadd_command, filters=filters.ChatType.PRIVATE))
     app.add_handler(CommandHandler("addword", addword_command, filters=filters.ChatType.PRIVATE))
     app.add_handler(CommandHandler("delword", delword_command, filters=filters.ChatType.PRIVATE))
     app.add_handler(CommandHandler("addexc", addexc_command, filters=filters.ChatType.PRIVATE))
