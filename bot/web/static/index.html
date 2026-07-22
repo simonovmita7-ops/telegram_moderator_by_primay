@@ -7,20 +7,20 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
-    --bg: #0b0b0f;
-    --surface: #14141d;
-    --surface2: #1e1e2d;
-    --accent: #6d28d9;
-    --accent2: #8b5cf6;
-    --accent-glow: rgba(139, 92, 246, 0.15);
-    --danger: #ef4444;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --text: #f3f4f6;
-    --text2: #9ca3af;
-    --border: rgba(139, 92, 246, 0.2);
-    --radius: 16px;
-    --radius-sm: 10px;
+    --bg: #07090b;
+    --surface: rgba(255, 255, 255, 0.03);
+    --surface2: rgba(255, 255, 255, 0.05);
+    --accent: #00e5c9;
+    --accent2: #849de0;
+    --accent-glow: rgba(0, 229, 201, 0.15);
+    --danger: #ff4a5a;
+    --success: #00e5c9;
+    --warning: #ffb700;
+    --text: #ffffff;
+    --text2: #8e9297;
+    --border: rgba(255, 255, 255, 0.08);
+    --radius: 28px;
+    --radius-sm: 16px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
@@ -29,23 +29,17 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
   }
 
   /* ===== HEADER ===== */
   .header {
-    background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
-    padding: 20px;
+    background: transparent;
+    padding: 24px 20px 16px 20px;
     position: relative;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
-  }
-  .header::before {
-    content: '';
-    position: absolute;
-    top: -60px; right: -60px;
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);
-    border-radius: 50%;
+    z-index: 10;
   }
   .header-top {
     display: flex;
@@ -55,15 +49,16 @@
   }
   .bot-avatar {
     width: 48px; height: 48px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    background: radial-gradient(circle at 10% 10%, #0d1212 0%, #07090b 100%);
+    border: 1px solid var(--accent);
     border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+    font-size: 22px;
+    box-shadow: 0 4px 14px rgba(0, 229, 201, 0.2);
     flex-shrink: 0;
   }
   .header-info { flex: 1; }
-  .header-info h1 { font-size: 17px; font-weight: 700; }
+  .header-info h1 { font-size: 17px; font-weight: 700; color: #ffffff; }
   .header-info p { font-size: 11px; color: var(--text2); margin-top: 2px; }
   
   .group-selector-container {
@@ -72,16 +67,23 @@
   }
   .group-select {
     width: 100%;
-    background: var(--surface);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 10px 12px;
+    padding: 12px 16px;
     border-radius: var(--radius-sm);
     font-size: 13px;
     font-weight: 600;
     outline: none;
     appearance: none;
     cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.3s;
+  }
+  .group-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
   }
   .group-selector-container::after {
     content: '▼';
@@ -94,72 +96,193 @@
     pointer-events: none;
   }
 
-  /* ===== TABS ===== */
-  .tabs {
-    display: flex;
-    background: var(--bg);
-    padding: 0 10px;
-    gap: 4px;
-    border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 100;
+  /* ===== GLOW BLOBS ===== */
+  .glow-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(85px);
+    pointer-events: none;
+    z-index: 0;
   }
-  .tab {
-    flex: 1;
-    padding: 12px 6px;
-    background: none; border: none;
-    color: var(--text2);
-    font-size: 12px; font-weight: 600;
-    cursor: pointer;
-    position: relative;
-    transition: color 0.2s;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  .glow-blob-1 {
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(0, 229, 201, 0.25) 0%, rgba(0, 229, 201, 0.05) 60%, rgba(0, 0, 0, 0) 80%);
+    top: 10%; left: -20%;
+    animation: floatBlob1 16s infinite alternate ease-in-out;
   }
-  .tab .tab-icon { font-size: 16px; }
-  .tab.active { color: var(--accent2); }
-  .tab.active::after {
-    content: '';
-    position: absolute; bottom: -1px; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 2px 2px 0 0;
+  .glow-blob-2 {
+    width: 520px; height: 520px;
+    background: radial-gradient(circle, rgba(84, 157, 224, 0.25) 0%, rgba(84, 157, 224, 0.05) 60%, rgba(0, 0, 0, 0) 80%);
+    bottom: 20%; right: -30%;
+    animation: floatBlob2 20s infinite alternate ease-in-out;
+  }
+  @keyframes floatBlob1 {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+    100% { transform: translate(40px, 60px) scale(1.1); opacity: 0.5; }
+  }
+  @keyframes floatBlob2 {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
+    100% { transform: translate(-50px, -40px) scale(1.15); opacity: 0.5; }
   }
 
+  /* ===== NAVIGATION BAR ===== */
+  .top-nav-container {
+    position: sticky;
+    top: 0; left: 0; right: 0;
+    width: 100%;
+    padding: 12px 16px;
+    z-index: 100;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(7, 9, 11, 0.9) 0%, rgba(7, 9, 11, 0) 100%);
+  }
+  .top-nav {
+    position: relative; display: flex; justify-content: space-around; align-items: center;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 36px;
+    padding: 0 12px;
+    pointer-events: auto;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.50), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(25px) saturate(185%);
+    -webkit-backdrop-filter: blur(25px) saturate(185%);
+  }
+  .nav-indicator {
+    position: absolute; height: 48px; width: 72px;
+    background: linear-gradient(135deg, rgba(0, 229, 201, 0.95) 0%, rgba(0, 168, 201, 0.95) 100%);
+    border-radius: 24px; left: 12px; z-index: 1;
+    transition: left 0.4s cubic-bezier(0.5, 1.4, 0.5, 1), width 0.4s cubic-bezier(0.5, 1.4, 0.5, 1);
+    box-shadow: 0 6px 20px rgba(0, 229, 201, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  }
+  .nav-item {
+    display: flex; align-items: center; justify-content: center;
+    text-decoration: none; background: none; border: none; outline: none;
+    color: var(--text2); transition: color 0.3s ease;
+    height: 48px; width: 72px; cursor: pointer; position: relative; z-index: 2;
+  }
+  .nav-item.active { color: #000000; }
+  .nav-icon {
+    width: 24px; height: 24px; stroke: currentColor; fill: none;
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+    transition: transform 0.2s ease, stroke 0.3s ease;
+  }
+  .nav-item:hover .nav-icon { transform: scale(1.1); }
+
   /* ===== CONTENT ===== */
-  .tab-content { display: none; padding: 16px; animation: fadeIn 0.2s ease; }
+  .tab-content { display: none; padding: 16px; animation: fadeIn 0.3s ease; position: relative; z-index: 5; }
   .tab-content.active { display: block; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 
   /* ===== CARDS ===== */
   .card {
-    background: var(--surface);
+    background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
   }
   .card-title {
-    font-size: 12px; font-weight: 700;
+    font-size: 13px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--text2); margin-bottom: 14px;
-    display: flex; align-items: center; gap: 6px;
+    color: var(--text); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
   }
-  .card-title span { font-size: 14px; }
+  .card-title span { font-size: 16px; }
+
+  /* ===== DASHBOARD BUTTONS ===== */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .dashboard-btn {
+    background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start;
+    gap: 6px; cursor: pointer; color: var(--text);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    text-align: left;
+  }
+  .dashboard-btn:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-2px); }
+  .dashboard-btn .icon { font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); margin-bottom: 2px; }
+  .dashboard-btn .text { font-size: 14px; font-weight: 700; color: var(--text); }
+  .dashboard-btn .desc { font-size: 11px; color: var(--text2); line-height: 1.3; font-weight: 400; }
+  
+  .dashboard-btn-large {
+    width: 100%;
+    background-size: cover; background-position: right center;
+    position: relative; overflow: hidden; padding: 0; min-height: 120px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .dashboard-btn-large:hover { transform: translateY(-2px); }
+  .dashboard-btn-large::before {
+    content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
+    background: linear-gradient(to right, rgba(11, 11, 15, 1) 30%, rgba(11, 11, 15, 0.7) 60%, rgba(11, 11, 15, 0) 100%);
+    z-index: 1;
+  }
+  .dashboard-btn-large .content {
+    position: relative; z-index: 2; padding: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; color: var(--text);
+    text-align: left; letter-spacing: 0.5px;
+  }
+  .dashboard-btn-large .title { font-size: 18px; font-weight: 700; display:flex; align-items:center; gap:8px; }
+  .dashboard-btn-large .title .icon { font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+  .dashboard-btn-large .desc { font-size: 12px; color: var(--text2); max-width: 60%; font-weight: 400; line-height: 1.3; }
+
+  /* ===== VIOLATIONS EXPAND ===== */
+  .violations-wrapper {
+    overflow: hidden;
+    max-height: 250px;
+    position: relative;
+    transition: max-height 0.4s ease;
+  }
+  .violations-wrapper.expanded {
+    max-height: 2000px;
+  }
+  .violations-fade {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+    background: linear-gradient(to top, var(--bg) 0%, transparent 100%);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .violations-wrapper.expanded .violations-fade { opacity: 0; }
+  .expand-btn {
+    width: 100%; background: rgba(255,255,255,0.05); border: none; padding: 12px;
+    color: var(--accent); font-weight: 600; cursor: pointer; border-radius: 8px; margin-top: 8px;
+    transition: background 0.2s ease;
+  }
+  .expand-btn:hover { background: rgba(255,255,255,0.1); }
 
   /* ===== STATS GRID ===== */
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .stat-box {
-    background: var(--surface2);
-    border: 1px solid var(--border);
+    background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-sm);
     padding: 14px;
     text-align: center;
     position: relative; overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
   .stat-box::before {
     content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: var(--stat-color, var(--accent));
   }
   .stat-num { font-size: 24px; font-weight: 800; color: var(--stat-color, var(--accent)); }
@@ -193,21 +316,29 @@
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #374151;
-    transition: .3s;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: .4s cubic-bezier(0.4, 0.0, 0.2, 1);
     border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
   .slider:before {
     position: absolute;
     content: "";
     height: 18px; width: 18px;
-    left: 3px; bottom: 3px;
+    left: 2px; bottom: 2px;
     background-color: white;
-    transition: .3s;
+    transition: .4s cubic-bezier(0.4, 0.0, 0.2, 1);
     border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
-  input:checked + .slider { background-color: var(--accent2); }
-  input:checked + .slider:before { transform: translateX(20px); }
+  input:checked + .slider {
+    background: linear-gradient(135deg, rgba(0, 229, 201, 1) 0%, rgba(0, 168, 201, 1) 100%);
+    border-color: transparent;
+    box-shadow: 0 0 12px rgba(0, 229, 201, 0.4);
+  }
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
 
   /* ===== LIST ITEMS ===== */
   .list-item {
@@ -251,14 +382,19 @@
   }
   .input-text {
     flex: 1;
-    background: var(--surface2);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 12px 16px;
     color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
     font-size: 13px;
-    outline: none;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
   }
+  .input-text:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0, 229, 201, 0.2), inset 0 2px 4px rgba(0,0,0,0.2); }
+  
   .input-row {
     display: flex;
     gap: 8px;
@@ -268,27 +404,35 @@
   /* ===== BUTTONS ===== */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 10px 16px;
-    border-radius: var(--radius-sm); border: none; cursor: pointer;
-    font-size: 13px; font-weight: 700;
-    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 16px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
     text-decoration: none;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1), inset 0 1px 1px rgba(255,255,255,0.05);
   }
+  .btn:active { transform: scale(0.97); }
+  
   .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: white;
-    box-shadow: 0 4px 12px rgba(139,92,246,0.3);
+    background: linear-gradient(135deg, rgba(0, 229, 201, 0.9) 0%, rgba(0, 168, 201, 0.9) 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #000;
+    box-shadow: 0 6px 16px rgba(0, 229, 201, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
   }
-  .btn-primary:active { transform: scale(0.97); }
   .btn-secondary {
-    background: var(--surface2);
-    color: var(--text); border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
   }
   .btn-danger {
-    background: rgba(239,68,68,0.15);
-    color: var(--danger); border: 1px solid rgba(239,68,68,0.25);
+    background: linear-gradient(135deg, rgba(255, 74, 90, 0.9) 0%, rgba(200, 30, 50, 0.9) 100%);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 6px 16px rgba(255, 74, 90, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
   }
-  .btn-danger:active { transform: scale(0.97); }
 
   /* ===== TAGS / WORDS ===== */
   .tags-container {
@@ -314,6 +458,19 @@
     color: var(--danger);
     font-weight: bold;
     font-size: 14px;
+  }
+
+  /* ===== AI CONTROL ===== */
+  .ai-control-card {
+    transition: background-color 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), box-shadow 0.8s ease, border-color 0.8s ease;
+    background-color: rgba(255, 255, 255, 0.03);
+    position: relative;
+    overflow: hidden;
+  }
+  .ai-control-card.on {
+    background-color: rgba(0, 229, 201, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 229, 201, 0.15);
+    border-color: rgba(0, 229, 201, 0.3);
   }
 
   /* ===== LOADING ===== */
@@ -361,19 +518,47 @@
 <div id="api-error-display" class="card" style="display:none; margin: 16px; border-color: var(--danger); color: var(--danger); font-size: 13px; font-weight: 500; background: rgba(239, 68, 68, 0.1); line-height: 1.4;">
 </div>
 
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('tab-main',this)">
-    <span class="tab-icon">📱</span>Mini App
-  </button>
-  <button class="tab" onclick="switchTab('tab-rules',this)">
-    <span class="tab-icon">📋</span>Правила
-  </button>
-  <button class="tab" onclick="switchTab('tab-words',this)">
-    <span class="tab-icon">🔤</span>Слова
-  </button>
-  <button class="tab" onclick="switchTab('tab-leaderboard',this)">
-    <span class="tab-icon">🏆</span>Рейтинг
-  </button>
+<!-- Glow blobs for premium background effect -->
+<div class="glow-blob glow-blob-1"></div>
+<div class="glow-blob glow-blob-2"></div>
+
+<div class="top-nav-container">
+  <div class="top-nav">
+    <div class="nav-indicator" id="nav-indicator"></div>
+    <button class="nav-item active" onclick="switchTabNav('tab-main', 0)">
+      <svg viewBox="0 0 24 24" class="nav-icon">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <path d="M9 22V12h6v10"/>
+      </svg>
+    </button>
+    <button class="nav-item" onclick="switchTabNav('tab-rules', 1)">
+      <svg viewBox="0 0 24 24" class="nav-icon">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+      </svg>
+    </button>
+    <button class="nav-item" onclick="switchTabNav('tab-ai', 2)">
+      <svg viewBox="0 0 24 24" class="nav-icon" stroke="currentColor" fill="none">
+        <path d="M15.5 13a3.5 3.5 0 0 0 -3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8"/>
+        <path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1 -7 0v-1.8"/>
+        <path d="M17.5 16a3.5 3.5 0 0 0 0 -7h-.5"/>
+        <path d="M19 9.3v-2.8a3.5 3.5 0 0 0 -7 0"/>
+        <path d="M6.5 16a3.5 3.5 0 0 1 0 -7h.5"/>
+        <path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10"/>
+      </svg>
+    </button>
+    <button class="nav-item" onclick="switchTabNav('tab-words', 3)">
+      <svg viewBox="0 0 24 24" class="nav-icon">
+        <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
+      </svg>
+    </button>
+    <button class="nav-item" onclick="switchTabNav('tab-leaderboard', 4)">
+      <svg viewBox="0 0 24 24" class="nav-icon">
+        <circle cx="12" cy="8" r="7"/>
+        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+      </svg>
+    </button>
+  </div>
 </div>
 
 <!-- ==================== TAB: MAIN ==================== -->
@@ -397,25 +582,35 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title"><span>⚙️</span>Управление модулями</div>
-    
-    <div class="switch-row">
-      <div class="switch-label">
-        <span class="switch-title">🧠 ИИ-модерация</span>
-        <span class="switch-sub">Анализ сообщений по правилам</span>
+
+  <div class="card" id="violations-card">
+    <div class="card-title"><span>⚡</span>Последние инциденты</div>
+    <div class="violations-wrapper" id="violations-wrapper">
+      <div id="violations-list">
+        <div style="padding:16px;text-align:center;color:var(--text2)">Загрузка списка нарушений...</div>
       </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="toggle-ai" onchange="toggleAi()">
-        <span class="slider"></span>
-      </label>
+      <div class="violations-fade" id="violations-fade"></div>
+    </div>
+    <button class="expand-btn" id="violations-expand-btn" onclick="toggleViolations()" style="display:none;">Развернуть ⬇</button>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="dashboard-btn" onclick="switchTabNav('tab-ai', 2)">
+      <div class="icon">🧠</div>
+      <div class="text">Настройка ИИ</div>
+      <div class="desc">Управление нейросетью</div>
+    </div>
+    <div class="dashboard-btn" onclick="switchTabNav('tab-rules', 1)">
+      <div class="icon">📋</div>
+      <div class="text">Настройка правил</div>
+      <div class="desc">Текст и ограничения</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title"><span>⚡</span>Последние инциденты</div>
-    <div id="violations-list">
-      <div style="padding:16px;text-align:center;color:var(--text2)">Загрузка списка нарушений...</div>
+  <div class="dashboard-btn-large" style="background-image: url('trophy.jpg'); margin-bottom: 16px;" onclick="switchTabNav('tab-leaderboard', 4)">
+    <div class="content">
+      <div class="title"><span class="icon">🏆</span>Таблица лидеров</div>
+      <div class="desc">Рейтинг самых активных дуэлянтов</div>
     </div>
   </div>
 </div>
@@ -436,6 +631,32 @@
   <div class="card">
     <div class="card-title"><span>⚙️</span>Тонкая настройка правил ИИ</div>
     <div id="rules-toggle-list">
+      <!-- populated dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB: AI ==================== -->
+<div id="tab-ai" class="tab-content">
+  <div class="card ai-control-card" id="ai-toggle-container">
+    <div class="switch-row" style="border-bottom:none; padding: 4px 0;">
+      <div class="switch-label">
+        <span class="switch-title" style="font-size:16px;">🧠 ИИ-модерация</span>
+        <span class="switch-sub" style="font-size:12px; margin-top:4px;">Включить или отключить нейросеть</span>
+      </div>
+      <label class="toggle-switch" style="transform: scale(1.1); margin-right: 4px;">
+        <input type="checkbox" id="toggle-ai" onchange="toggleAi()">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="justify-content: space-between;">
+      <div style="display:flex;align-items:center;gap:8px;"><span>⚠️</span>Ошибки запросов ИИ</div>
+      <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px;" onclick="copyAndSendAiErrors()">📋 Отправить</button>
+    </div>
+    <div class="list" id="ai-errors-list">
       <!-- populated dynamically -->
     </div>
   </div>
@@ -508,11 +729,20 @@ let appData = {
 };
 
 // Переключение вкладок
-function switchTab(id, btn) {
+function switchTabNav(id, index) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
+  
+  const items = document.querySelectorAll('.nav-item');
+  if (items[index]) {
+    items[index].classList.add('active');
+    const indicator = document.getElementById('nav-indicator');
+    if (indicator) {
+      indicator.style.left = items[index].offsetLeft + 'px';
+      indicator.style.width = items[index].offsetWidth + 'px';
+    }
+  }
 }
 
 // Показать/скрыть лоадер
@@ -607,9 +837,39 @@ function render() {
 
   // Переключатель ИИ
   document.getElementById('toggle-ai').checked = appData.ai_enabled;
+  const aiContainer = document.getElementById('ai-toggle-container');
+  if (aiContainer) {
+    if (appData.ai_enabled) {
+      aiContainer.classList.add('on');
+    } else {
+      aiContainer.classList.remove('on');
+    }
+  }
+
+  // Ошибки ИИ
+  const aiErrorsList = document.getElementById('ai-errors-list');
+  if (aiErrorsList) {
+    if (appData.ai_errors && appData.ai_errors.length > 0) {
+      aiErrorsList.innerHTML = appData.ai_errors.map(err => `
+        <div class="list-item" style="border-color: rgba(255,255,255,0.05);">
+          <div class="list-icon" style="background:rgba(239,68,68,0.1); color:var(--danger)">⚠️</div>
+          <div class="list-body">
+            <div class="list-title" style="color:var(--danger)">${err.error || 'Ошибка ИИ'}</div>
+            <div class="list-sub">${err.time || ''}</div>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      aiErrorsList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">Ошибок пока нет 🎉</div>';
+    }
+  }
 
   // Нарушения
   const vList = document.getElementById('violations-list');
+  const vBtn = document.getElementById('violations-expand-btn');
+  const vFade = document.getElementById('violations-fade');
+  const vWrapper = document.getElementById('violations-wrapper');
+  
   if (appData.violations && appData.violations.length > 0) {
     vList.innerHTML = appData.violations.map(v => `
       <div class="list-item">
@@ -620,8 +880,21 @@ function render() {
         </div>
         <span class="badge ${v.badge}">${v.cat}</span>
       </div>`).join('');
+      
+    if (appData.violations.length > 3) {
+      if (vBtn) vBtn.style.display = 'block';
+      if (vFade) vFade.style.display = 'block';
+      if (vWrapper) vWrapper.classList.remove('expanded');
+    } else {
+      if (vBtn) vBtn.style.display = 'none';
+      if (vFade) vFade.style.display = 'none';
+      if (vWrapper) vWrapper.classList.add('expanded');
+    }
   } else {
     vList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">Инцидентов пока нет 🎉</div>';
+    if (vBtn) vBtn.style.display = 'none';
+    if (vFade) vFade.style.display = 'none';
+    if (vWrapper) vWrapper.classList.add('expanded');
   }
 
   // Правила (текстовое поле)
@@ -695,9 +968,25 @@ function render() {
   }
 }
 
+function toggleViolations() {
+  const wrapper = document.getElementById('violations-wrapper');
+  const btn = document.getElementById('violations-expand-btn');
+  if (!wrapper) return;
+  if (wrapper.classList.contains('expanded')) {
+    wrapper.classList.remove('expanded');
+    if (btn) btn.innerHTML = 'Развернуть ⬇';
+  } else {
+    wrapper.classList.add('expanded');
+    if (btn) btn.innerHTML = 'Свернуть ⬆';
+  }
+}
+
 // Переключение ИИ-модерации
 async function toggleAi() {
   if (!appData.selected_group_id) return;
+  // Сразу меняем визуал локально
+  appData.ai_enabled = !appData.ai_enabled;
+  render();
   try {
     const r = await fetch(`${API_BASE}/api/miniapp/toggle_ai`, {
       method: 'POST',
@@ -707,11 +996,36 @@ async function toggleAi() {
     if (r.ok) {
       const res = await r.json();
       appData.ai_enabled = res.ai_enabled;
+      render();
       if (tg) tg.HapticFeedback.notificationOccurred("success");
+    } else {
+      // Откат
+      appData.ai_enabled = !appData.ai_enabled;
+      render();
     }
   } catch (e) {
     console.error(e);
+    // Откат
+    appData.ai_enabled = !appData.ai_enabled;
+    render();
   }
+}
+
+// Отправка ошибок автору
+function copyAndSendAiErrors() {
+  const errors = appData.ai_errors && appData.ai_errors.length > 0 
+    ? JSON.stringify(appData.ai_errors, null, 2) 
+    : "Ошибок ИИ не зафиксировано.";
+  const text = `Ошибки ИИ бота:\n\n${errors}`;
+  navigator.clipboard.writeText(text).then(() => {
+    if (tg && tg.openTelegramLink) {
+      tg.openTelegramLink("https://t.me/PR1MAY?text=" + encodeURIComponent("Привет! Отправляю логи ошибок ИИ:\n" + errors));
+    } else {
+      window.open("https://t.me/PR1MAY", "_blank");
+    }
+  }).catch(e => {
+    alert("Не удалось скопировать логи.");
+  });
 }
 
 // Переключение правила
@@ -833,6 +1147,7 @@ async function resetRulesText() {
 
 // Инициализация
 loadGroupData();
+setTimeout(() => switchTabNav('tab-main', 0), 100);
 </script>
 </body>
 </html>
