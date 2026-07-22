@@ -27,6 +27,7 @@ class SchedulerService:
         self._app = application
         self._task: asyncio.Task[None] | None = None
         self._running = False
+        self._last_status_update: float | None = None
 
     async def start(self) -> None:
         """Запустить планировщик и восстановить просроченные задачи."""
@@ -116,9 +117,24 @@ class SchedulerService:
         while self._running:
             try:
                 await self._check_expired()
+                
+                # Периодическое обновление статуса (раз в 5 минут / 300 секунд)
+                now_time = asyncio.get_event_loop().time()
+                if self._last_status_update is None or now_time - self._last_status_update >= 300:
+                    self._last_status_update = now_time
+                    await self._update_status()
             except Exception as exc:
                 logger.exception("Ошибка в планировщике: %s", exc)
             await asyncio.sleep(CHECK_INTERVAL)
+
+    async def _update_status(self) -> None:
+        try:
+            settings = self._app.bot_data.get("settings")
+            if settings:
+                from bot.services.status_service import update_bot_status
+                await update_bot_status(self._app.bot, settings, True)
+        except Exception as e:
+            logger.error("Ошибка при периодическом обновлении статуса бота: %s", e)
 
     async def _check_expired(self) -> None:
         """Проверить и обработать все истекшие наказания."""
