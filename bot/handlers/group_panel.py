@@ -31,7 +31,7 @@ async def show_groups_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     async with db.session() as session:
         groups = await perm.get_manageable_groups(session, user.id)
 
-    bot_username = context.bot_data.get("bot_username", "")
+    bot_username = context.bot_data.get("bot_username", "GControlsBot")
     if not bot_username:
         try:
             bot_me = await context.bot.get_me()
@@ -39,10 +39,11 @@ async def show_groups_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             context.bot_data["bot_username"] = bot_username
         except Exception:
             pass
+    username_clean = bot_username or "GControlsBot"
 
     if not groups:
         text = "📋 У вас пока нет групп.\n\nДобавьте бота в группу как администратора."
-        url = f"https://t.me/{bot_username}?startgroup=true" if bot_username else "https://t.me"
+        url = f"https://t.me/{username_clean}?startgroup=true"
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("➕ Добавить бота в группу", url=url)],

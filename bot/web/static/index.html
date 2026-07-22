@@ -871,7 +871,7 @@ function showError(msg) {
 }
 
 function addBotToGroup() {
-  const username = appData.bot_username || "GroupControls_bot";
+  const username = appData.bot_username || "GControlsBot";
   const url = `https://t.me/${username}?startgroup=true`;
   if (tg && tg.openTelegramLink) {
     tg.openTelegramLink(url);
