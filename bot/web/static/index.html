@@ -117,33 +117,78 @@
   }
   .add-bot-btn:active { transform: scale(0.97); }
 
-  /* ===== GLOW BLOBS ===== */
+  /* ===== GLOW BLOBS (SMOOTH FLOATING SHAPES) ===== */
   .glow-blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(85px);
+    position: fixed;
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    filter: blur(75px);
     pointer-events: none;
     z-index: 0;
+    opacity: 0.65;
+    will-change: transform, border-radius;
   }
   .glow-blob-1 {
-    width: 480px; height: 480px;
-    background: radial-gradient(circle, rgba(0, 229, 201, 0.25) 0%, rgba(0, 229, 201, 0.05) 60%, rgba(0, 0, 0, 0) 80%);
-    top: 10%; left: -20%;
-    animation: floatBlob1 16s infinite alternate ease-in-out;
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, rgba(0, 229, 201, 0.4) 0%, rgba(0, 168, 201, 0.15) 50%, transparent 80%);
+    top: -50px; left: -60px;
+    animation: floatBlob1 14s infinite alternate ease-in-out;
   }
   .glow-blob-2 {
-    width: 520px; height: 520px;
-    background: radial-gradient(circle, rgba(84, 157, 224, 0.25) 0%, rgba(84, 157, 224, 0.05) 60%, rgba(0, 0, 0, 0) 80%);
-    bottom: 20%; right: -30%;
-    animation: floatBlob2 20s infinite alternate ease-in-out;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(123, 77, 255, 0.35) 0%, rgba(0, 229, 201, 0.2) 50%, transparent 80%);
+    bottom: 10%; right: -80px;
+    animation: floatBlob2 18s infinite alternate ease-in-out;
   }
+  .glow-blob-3 {
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(0, 229, 201, 0.3) 0%, rgba(132, 157, 224, 0.2) 60%, transparent 80%);
+    top: 45%; left: 30%;
+    animation: floatBlob3 15s infinite alternate ease-in-out;
+  }
+
   @keyframes floatBlob1 {
-    0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-    100% { transform: translate(40px, 60px) scale(1.1); opacity: 0.5; }
+    0% {
+      transform: translate(0, 0) rotate(0deg) scale(1);
+      border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    }
+    50% {
+      transform: translate(80px, 120px) rotate(120deg) scale(1.15);
+      border-radius: 60% 40% 30% 70% / 70% 30% 50% 40%;
+    }
+    100% {
+      transform: translate(140px, 40px) rotate(240deg) scale(0.95);
+      border-radius: 50% 50% 40% 60% / 30% 60% 40% 70%;
+    }
   }
+
   @keyframes floatBlob2 {
-    0% { transform: translate(0, 0) scale(1); opacity: 0.8; }
-    100% { transform: translate(-50px, -40px) scale(1.15); opacity: 0.5; }
+    0% {
+      transform: translate(0, 0) rotate(0deg) scale(1);
+      border-radius: 60% 40% 50% 50% / 30% 60% 40% 70%;
+    }
+    50% {
+      transform: translate(-100px, -90px) rotate(-140deg) scale(1.2);
+      border-radius: 40% 60% 70% 30% / 50% 40% 60% 50%;
+    }
+    100% {
+      transform: translate(-40px, -160px) rotate(-280deg) scale(0.9);
+      border-radius: 70% 30% 40% 60% / 60% 50% 30% 40%;
+    }
+  }
+
+  @keyframes floatBlob3 {
+    0% {
+      transform: translate(0, 0) scale(0.9);
+      border-radius: 50% 50% 30% 70% / 40% 60% 40% 60%;
+    }
+    50% {
+      transform: translate(-60px, 80px) scale(1.25);
+      border-radius: 30% 70% 60% 40% / 60% 30% 70% 40%;
+    }
+    100% {
+      transform: translate(70px, -60px) scale(1.05);
+      border-radius: 60% 40% 50% 50% / 40% 70% 30% 60%;
+    }
   }
 
   /* ===== NAVIGATION BAR ===== */
@@ -547,6 +592,7 @@
 <!-- Glow blobs for premium background effect -->
 <div class="glow-blob glow-blob-1"></div>
 <div class="glow-blob glow-blob-2"></div>
+<div class="glow-blob glow-blob-3"></div>
 
 <div class="top-nav-container">
   <div class="top-nav">
