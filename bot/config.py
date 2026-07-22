@@ -33,6 +33,9 @@ class Settings:
     ai_request_timeout: float = 60.0
     webapp_url: str = ""
     subscription_channel: str | None = None
+    status_channel_id: str | None = None
+    status_message_id: int | None = None
+    bot_version: str = "Beta 1.2.5"
 
 
 def _require(name: str, default: str | None = None) -> str:
@@ -69,5 +72,8 @@ def load_settings() -> Settings:
         ai_request_timeout=float(os.getenv("AI_REQUEST_TIMEOUT", "60")),
         webapp_url=os.getenv("WEBAPP_URL", ""),
         subscription_channel=os.getenv("SUBSCRIPTION_CHANNEL", "").strip() or None,
+        status_channel_id=os.getenv("STATUS_CHANNEL_ID", "").strip() or None,
+        status_message_id=int(os.getenv("STATUS_MESSAGE_ID", "").strip()) if os.getenv("STATUS_MESSAGE_ID", "").strip().isdigit() else None,
+        bot_version=os.getenv("BOT_VERSION", "Beta 1.2.5").strip(),
     )
 

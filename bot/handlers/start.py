@@ -5,14 +5,26 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot, WebAppInfo, MenuButtonWebApp
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 from bot.database import get_db
-from bot.keyboards.main_menu import back_to_main_keyboard, main_menu_keyboard
+from bot.keyboards.main_menu import back_to_main_keyboard, main_menu_keyboard, main_menu_reply_keyboard
 from bot.services.permissions import PermissionService
 
 logger = logging.getLogger(__name__)
+
+START_WELCOME_TEXT = (
+    "👋 <b>Telegram-бот модератор</b>\n\n"
+    "Я автоматически модерирую группы по правилам, установленным через Mini App или команду /RulesAdd.\n\n"
+    "Изучите инструкции перед использованием бота или перейдите в Главное меню."
+)
+
+def start_welcome_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📖 Открыть инструкции", web_app=WebAppInfo(url="https://docs-style.vercel.app"))],
+        [InlineKeyboardButton("⚙️ Главное меню", callback_data="menu:main")]
+    ])
 
 WELCOME_TEXT = (
     "👋 <b>Telegram-бот модератор</b>\n\n"
@@ -128,8 +140,32 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
             return
 
-    await update.effective_message.reply_text(
-        WELCOME_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard())
+    db = get_db()
+    async with db.session() as session:
+        from bot.models import UserStartStatus
+        status = await session.get(UserStartStatus, user_id)
+        first_completed = status.first_start_completed if status else False
+
+    # Нативно регистрируем кнопку Mini App у поля ввода (Chat Menu Button)
+    try:
+        await context.bot.set_chat_menu_button(
+            chat_id=user_id,
+            menu_button=MenuButtonWebApp(
+                text="📱 Mini App",
+                web_app=WebAppInfo(url="https://telegram-moderator-by-primay.vercel.app/")
+            )
+        )
+    except Exception as e:
+        logger.error(f"Не удалось установить кнопку меню: {e}")
+
+    if first_completed:
+        await update.effective_message.reply_text(
+            WELCOME_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard()
+        )
+    else:
+        await update.effective_message.reply_text(
+            START_WELCOME_TEXT, parse_mode="HTML", reply_markup=start_welcome_keyboard()
+        )
 
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -141,6 +177,18 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await query.answer()
 
     if data == "menu:main":
+        user_id = query.from_user.id
+        db = get_db()
+        async with db.session() as session:
+            from bot.models import UserStartStatus
+            status = await session.get(UserStartStatus, user_id)
+            if not status:
+                status = UserStartStatus(user_telegram_id=user_id, first_start_completed=True)
+                session.add(status)
+            else:
+                status.first_start_completed = True
+            await session.commit()
+            
         await query.edit_message_text(WELCOME_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard())
     elif data == "menu:help":
         await query.edit_message_text(HELP_TEXT, parse_mode="HTML", reply_markup=back_to_main_keyboard())
@@ -154,7 +202,17 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 await query.answer("❌ Вы всё ещё не подписаны на канал!", show_alert=True)
                 return
         await query.answer("✅ Подписка подтверждена!")
-        await query.edit_message_text(WELCOME_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard())
+        
+        db = get_db()
+        async with db.session() as session:
+            from bot.models import UserStartStatus
+            status = await session.get(UserStartStatus, user_id)
+            first_completed = status.first_start_completed if status else False
+            
+        if first_completed:
+            await query.edit_message_text(WELCOME_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard())
+        else:
+            await query.edit_message_text(START_WELCOME_TEXT, parse_mode="HTML", reply_markup=start_welcome_keyboard())
     elif data == "menu:settings":
         settings = context.bot_data.get("settings")
         ch = settings.subscription_channel if settings else None

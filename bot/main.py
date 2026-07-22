@@ -19,6 +19,7 @@ from bot.handlers.moderation import (
     addword_command, delword_command, addexc_command, delexc_command, group_message_handler
 )
 from bot.handlers.start import menu_callback, start_command, rulesadd_command
+from bot.handlers.minigames import minigames_handler, minigames_callback, top_command
 from bot.scheduler.jobs import SchedulerService
 from bot.services.logging_service import LoggingService
 from bot.services.moderation import ModerationService
@@ -66,6 +67,7 @@ def build_application(settings: Settings) -> Application:
     # Callback-кнопки
     app.add_handler(CallbackQueryHandler(menu_callback, pattern=r"^menu:"))
     app.add_handler(CallbackQueryHandler(group_callback, pattern=r"^(group:|gp:|gs:|ga:)"))
+    app.add_handler(CallbackQueryHandler(minigames_callback, pattern=r"^(minigame:|duel:|duel_action:)"))
 
     # Ввод текста в ЛС (для ввода ID, ссылок и т.д.)
     app.add_handler(MessageHandler(
@@ -74,6 +76,13 @@ def build_application(settings: Settings) -> Application:
     # События группы
     app.add_handler(ChatMemberHandler(
         my_chat_member_handler, chat_member_types=ChatMemberHandler.MY_CHAT_MEMBER))
+
+    # Мини-игры
+    app.add_handler(CommandHandler("top", top_command, filters=filters.ChatType.GROUPS))
+    app.add_handler(MessageHandler(
+        filters.ChatType.GROUPS & filters.TEXT & filters.Regex(r"(?i)^(/(minigames|rlt|HardcoreRLT)|дуэль|@\w+\s+дуэль)"),
+        minigames_handler
+    ))
 
     # Модерация сообщений в группах
     app.add_handler(MessageHandler(
@@ -129,6 +138,13 @@ def main() -> None:
 
         await scheduler.start()
         
+        # Обновление статуса в канале на ONLINE
+        try:
+            from bot.services.status_service import update_bot_status
+            await update_bot_status(app.bot, settings, True)
+        except Exception as status_err:
+            logger.error("Не удалось отправить статус старта: %s", status_err)
+
         # Запуск веб-сервера Mini App
         from bot.web.server import run_server
         runner = await run_server(
@@ -138,6 +154,14 @@ def main() -> None:
             settings=settings
         )
         app.bot_data["web_runner"] = runner
+
+    async def post_stop(app: Application) -> None:
+        # Обновление статуса в канале на OFFLINE
+        try:
+            from bot.services.status_service import update_bot_status
+            await update_bot_status(app.bot, settings, False)
+        except Exception as status_err:
+            logger.error("Не удалось отправить статус завершения: %s", status_err)
 
     async def post_shutdown(app: Application) -> None:
         await scheduler.stop()
@@ -152,6 +176,7 @@ def main() -> None:
             await db_module.db.close()
 
     application.post_init = post_init
+    application.post_stop = post_stop
     application.post_shutdown = post_shutdown
 
     application.run_polling(

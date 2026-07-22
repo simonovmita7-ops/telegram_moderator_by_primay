@@ -371,6 +371,9 @@
   <button class="tab" onclick="switchTab('tab-words',this)">
     <span class="tab-icon">🔤</span>Слова
   </button>
+  <button class="tab" onclick="switchTab('tab-leaderboard',this)">
+    <span class="tab-icon">🏆</span>Рейтинг
+  </button>
 </div>
 
 <!-- ==================== TAB: MAIN ==================== -->
@@ -458,6 +461,16 @@
       <button class="btn btn-primary" onclick="addWord('exception')">➕ Добавить</button>
     </div>
     <div class="tags-container" id="exception-tags-list">
+      <!-- populated dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB: LEADERBOARD ==================== -->
+<div id="tab-leaderboard" class="tab-content">
+  <div class="card">
+    <div class="card-title"><span>🏆</span>Рейтинг дуэлянтов чата</div>
+    <div class="list" id="leaderboard-list">
       <!-- populated dynamically -->
     </div>
   </div>
@@ -658,6 +671,28 @@ function render() {
         </span>
       `).join('')
     : '<div style="color:var(--text2);font-size:12px;padding:6px 0">Список пуст</div>';
+
+  // Рейтинг дуэлянтов
+  const leaderboardList = document.getElementById('leaderboard-list');
+  if (appData.leaderboard && appData.leaderboard.length > 0) {
+    leaderboardList.innerHTML = appData.leaderboard.map((p, idx) => {
+      const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `<span>#${idx + 1}</span>`;
+      return `
+        <div class="list-item" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--card-bg)">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:18px;min-width:24px;text-align:center">${medal}</div>
+            <div>
+              <div style="font-weight:600;font-size:14px;color:var(--text1)">${p.name}</div>
+              <div style="font-size:12px;color:var(--text2)">Игр: ${p.total} | Винрейт: ${p.win_rate}%</div>
+            </div>
+          </div>
+          <span class="badge badge-success" style="background:rgba(16,185,129,0.1);color:var(--success);padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600">${p.wins} побед</span>
+        </div>
+      `;
+    }).join('');
+  } else {
+    leaderboardList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">Игр пока не было. Начните дуэль! ⚔️</div>';
+  }
 }
 
 // Переключение ИИ-модерации

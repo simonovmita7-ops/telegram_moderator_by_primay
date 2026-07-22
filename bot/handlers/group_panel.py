@@ -319,6 +319,41 @@ async def admin_id_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user_id = update.effective_user.id
     db = get_db(); perm = PermissionService(); gs_svc = SettingsService()
 
+    # Перехват шаблона приветственного сообщения для канала
+    if "Добро пожаловать в официальный канал Group Controls" in text:
+        import re
+        import os
+        html_content = update.effective_message.text_html
+        
+        # Заменяем значения после двоеточия на плейсхолдеры, сохраняя форматирование и закрывающие теги (например, </b>)
+        html_content = re.sub(r"(Текущая версия\s*:\s*)([^<\n]*)", r"\1{version}", html_content, flags=re.IGNORECASE)
+        html_content = re.sub(r"(Статус бота\s*:\s*)([^<\n]*)", r"\1{status}", html_content, flags=re.IGNORECASE)
+        
+        try:
+            os.makedirs(os.path.join("bot", "data"), exist_ok=True)
+            template_path = os.path.join("bot", "data", "welcome_template.txt")
+            with open(template_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+                
+            await update.effective_message.reply_text(
+                "✅ <b>Шаблон приветственного сообщения успешно сохранен!</b>\n\n"
+                "Все форматирование, ссылки и кастомные эмодзи сохранены в точности. "
+                "Бот будет использовать этот текст для автообновлений, заменяя только значения версии и статуса после двоеточий.\n\n"
+                "<i>Статус в канале обновлен на ONLINE.</i>",
+                parse_mode="HTML"
+            )
+            
+            # Сразу обновляем статус в канале
+            settings = context.bot_data.get("settings")
+            if settings:
+                from bot.services.status_service import update_bot_status
+                await update_bot_status(context.bot, settings, True)
+            return
+        except Exception as e:
+            logger.error(f"Ошибка сохранения шаблона канала: {e}")
+            await update.effective_message.reply_text(f"❌ Ошибка сохранения шаблона: {e}")
+            return
+
     # Ожидание текста правил для группы
     rules_group = context.user_data.pop("awaiting_rules_text", None)
     if rules_group:

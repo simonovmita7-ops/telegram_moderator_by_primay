@@ -151,6 +151,38 @@ async def handle_api_data(request):
             
             rules_raw = gs.rules_text or (rules_loader.get_rules() if rules_loader else "")
             
+            # Получаем таблицу лидеров дуэлей
+            from bot.models import DuelRecord
+            wins_q = await session.execute(
+                select(DuelRecord.winner_name, func.count(DuelRecord.id))
+                .where(DuelRecord.group_id == group.id)
+                .group_by(DuelRecord.winner_name)
+            )
+            wins_map = {row[0]: row[1] for row in wins_q.all()}
+            
+            losses_q = await session.execute(
+                select(DuelRecord.loser_name, func.count(DuelRecord.id))
+                .where(DuelRecord.group_id == group.id)
+                .group_by(DuelRecord.loser_name)
+            )
+            losses_map = {row[0]: row[1] for row in losses_q.all()}
+
+            players = set(wins_map.keys()) | set(losses_map.keys())
+            leaderboard = []
+            for name in players:
+                w = wins_map.get(name, 0)
+                l = losses_map.get(name, 0)
+                tot = w + l
+                wr = (w / tot * 100) if tot > 0 else 0
+                leaderboard.append({
+                    "name": name,
+                    "wins": w,
+                    "losses": l,
+                    "total": tot,
+                    "win_rate": round(wr, 1)
+                })
+            leaderboard.sort(key=lambda x: (x["wins"], x["win_rate"]), reverse=True)
+
             data = {
                 "groups": group_list,
                 "selected_group_id": selected_group_tg_id,
@@ -164,6 +196,7 @@ async def handle_api_data(request):
                 "ai_enabled": gs.ai_enabled,
                 "enabled_rules": gs.enabled_rules or {},
                 "has_custom_rules": gs.rules_text is not None and len(gs.rules_text.strip()) > 0,
+                "leaderboard": leaderboard[:10],  # Топ-10
             }
             return web.json_response(data)
     except Exception as e:
