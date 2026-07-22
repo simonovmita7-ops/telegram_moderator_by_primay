@@ -53,28 +53,8 @@ HELP_TEXT = (
 
 
 async def rulesadd_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.effective_message is None or update.effective_user is None: return
-    user_id = update.effective_user.id
-    db = get_db(); perm = PermissionService()
-    async with db.session() as session:
-        groups = await perm.get_manageable_groups(session, user_id)
-    if not groups:
-        await update.effective_message.reply_text(
-            "📋 У вас пока нет групп. Добавьте бота в группу в качестве администратора."
-        )
-        return
-    
-    group_tuples = [(g.telegram_id, g.title) for g in groups]
-    rows = [
-        [InlineKeyboardButton(title[:40], callback_data=f"gs:{tg_id}:rules_txt_set")]
-        for tg_id, title in group_tuples
-    ]
-    rows.append([InlineKeyboardButton("◀️ Главное меню", callback_data="menu:main")])
-    await update.effective_message.reply_text(
-        "📝 <b>Установка правил</b>\n\nВыберите группу для настройки правил:",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(rows)
-    )
+    if update.effective_message is None: return
+    await update.effective_message.reply_text("В данный момент управление настройками осуществляется через Mini App")
 
 
 def parse_channel_username_or_id(link: str) -> str | int | None:

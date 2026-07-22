@@ -30,15 +30,31 @@ async def show_groups_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     db = get_db(); perm = PermissionService()
     async with db.session() as session:
         groups = await perm.get_manageable_groups(session, user.id)
+
+    bot_username = context.bot_data.get("bot_username", "")
+    if not bot_username:
+        try:
+            bot_me = await context.bot.get_me()
+            bot_username = bot_me.username
+            context.bot_data["bot_username"] = bot_username
+        except Exception:
+            pass
+
     if not groups:
         text = "📋 У вас пока нет групп.\n\nДобавьте бота в группу как администратора."
-        kb = back_to_main_keyboard()
+        url = f"https://t.me/{bot_username}?startgroup=true" if bot_username else "https://t.me"
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Добавить бота в группу", url=url)],
+            [InlineKeyboardButton("◀️ Главное меню", callback_data="menu:main")]
+        ])
         if query: await query.edit_message_text(text, reply_markup=kb)
         elif message: await message.reply_text(text, reply_markup=kb)
         return
+
     group_tuples = [(g.telegram_id, g.title) for g in groups]
     text = "📋 <b>Мои группы</b>\n\nВыберите группу для управления:"
-    kb = groups_list_keyboard(group_tuples)
+    kb = groups_list_keyboard(group_tuples, bot_username)
     if query:
         await query.answer()
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=kb)
@@ -49,17 +65,37 @@ async def show_groups_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 async def group_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     if query is None or query.data is None or query.from_user is None: return
-    await query.answer()
     data = query.data
+
+    if data.startswith("gs:"):
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        parts = data.split(":")
+        group_tg_id = int(parts[1]) if len(parts) > 1 and (parts[1].isdigit() or parts[1].lstrip('-').isdigit()) else 0
+        try:
+            await query.answer("В данный момент управление настройками осуществляется через Mini App", show_alert=True)
+        except Exception:
+            pass
+        kb = InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data=f"group:{group_tg_id}")]]) if group_tg_id else None
+        await query.edit_message_text("⚠️ <b>В данный момент управление настройками осуществляется через Mini App</b>", parse_mode="HTML", reply_markup=kb)
+        return
+
+    if data.startswith("ga:"):
+        try:
+            await query.answer("Управление администраторами отключено.", show_alert=True)
+        except Exception:
+            pass
+        return
+
+    try:
+        await query.answer()
+    except Exception:
+        pass
+
     if data.startswith("group:"):
         await _show_rules_intercept(query, context, int(data.split(":")[1]))
     elif data.startswith("gp:"):
         parts = data.split(":")
         await _group_panel_action(query, context, int(parts[1]), parts[2])
-    elif data.startswith("gs:"):
-        await _settings_action(query, context, data)
-    elif data.startswith("ga:"):
-        await _admins_action(query, context, data)
 
 
 async def _show_rules_intercept(query, context, group_tg_id):
@@ -116,8 +152,14 @@ async def _group_panel_action(query, context, group_tg_id, action):
         if action == "panel_direct":
             await _open_group_panel(query, context, group_tg_id)
         elif action == "settings":
-            await query.edit_message_text("⚙️ <b>Настройки группы</b>", parse_mode="HTML",
-                                           reply_markup=settings_keyboard(group_tg_id))
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            try:
+                await query.answer("В данный момент управление настройками осуществляется через Mini App", show_alert=True)
+            except Exception:
+                pass
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data=f"group:{group_tg_id}")]])
+            await query.edit_message_text("⚠️ <b>В данный момент управление настройками осуществляется через Mini App</b>", parse_mode="HTML", reply_markup=kb)
+            return
         elif action == "violators":
             await _show_violators(query, session, group)
         elif action == "history":
@@ -133,8 +175,11 @@ async def _group_panel_action(query, context, group_tg_id, action):
         elif action == "gstats":
             await _show_group_stats(query, session, group)
         elif action == "admins":
-            await query.edit_message_text("👮 <b>Администраторы</b>", parse_mode="HTML",
-                                          reply_markup=admins_keyboard(group_tg_id, access.is_owner))
+            try:
+                await query.answer("Управление администраторами отключено.", show_alert=True)
+            except Exception:
+                pass
+            return
 
 
 async def _show_violators(query, session, group):

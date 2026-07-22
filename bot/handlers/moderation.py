@@ -71,54 +71,20 @@ async def group_message_handler(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def addword_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Добавить запрещённое слово (немедленная реакция)."""
-    if update.effective_message is None or not context.args: return
-    word = " ".join(context.args); user = update.effective_user
-    if user is None: return
-    db = get_db(); perm = PermissionService(); gs_svc = SettingsService()
-    async with db.session() as session:
-        groups = await perm.get_manageable_groups(session, user.id)
-        for group in groups:
-            await gs_svc.add_banned_word(session, group.id, word)
-    await update.effective_message.reply_text(f"✅ Слово «{word}» добавлено в {len(groups)} групп(ы).\n"
-                                              f"Бот будет реагировать на него немедленно.")
+    if update.effective_message is None: return
+    await update.effective_message.reply_text("В данный момент управление настройками осуществляется через Mini App")
 
 
 async def delword_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Удалить запрещённое слово."""
-    if update.effective_message is None or not context.args: return
-    word = " ".join(context.args); user = update.effective_user
-    if user is None: return
-    db = get_db(); perm = PermissionService(); gs_svc = SettingsService()
-    async with db.session() as session:
-        groups = await perm.get_manageable_groups(session, user.id)
-        for group in groups:
-            await gs_svc.remove_banned_word(session, group.id, word)
-    await update.effective_message.reply_text(f"✅ Слово «{word}» удалено из {len(groups)} групп(ы).")
+    if update.effective_message is None: return
+    await update.effective_message.reply_text("В данный момент управление настройками осуществляется через Mini App")
 
 
 async def addexc_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Добавить слово-исключение (бот не реагирует)."""
-    if update.effective_message is None or not context.args: return
-    word = " ".join(context.args); user = update.effective_user
-    if user is None: return
-    db = get_db(); perm = PermissionService(); gs_svc = SettingsService()
-    async with db.session() as session:
-        groups = await perm.get_manageable_groups(session, user.id)
-        for group in groups:
-            await gs_svc.add_exception_word(session, group.id, word)
-    await update.effective_message.reply_text(f"✅ Слово «{word}» добавлено в исключения.\n"
-                                              f"Бот не будет реагировать на него.")
+    if update.effective_message is None: return
+    await update.effective_message.reply_text("В данный момент управление настройками осуществляется через Mini App")
 
 
 async def delexc_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Удалить слово-исключение."""
-    if update.effective_message is None or not context.args: return
-    word = " ".join(context.args); user = update.effective_user
-    if user is None: return
-    db = get_db(); perm = PermissionService(); gs_svc = SettingsService()
-    async with db.session() as session:
-        groups = await perm.get_manageable_groups(session, user.id)
-        for group in groups:
-            await gs_svc.remove_exception_word(session, group.id, word)
-    await update.effective_message.reply_text(f"✅ Слово «{word}» удалено из исключений.")
+    if update.effective_message is None: return
+    await update.effective_message.reply_text("В данный момент управление настройками осуществляется через Mini App")

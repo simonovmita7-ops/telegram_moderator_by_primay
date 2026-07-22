@@ -125,6 +125,11 @@ def main() -> None:
 
     async def post_init(app: Application) -> None:
         await db_module.db.init_db()
+        try:
+            bot_me = await app.bot.get_me()
+            app.bot_data["bot_username"] = bot_me.username
+        except Exception as me_err:
+            logger.error("Не удалось получить имя бота: %s", me_err)
         
         # Очистка всех логов из таблицы logs в базе данных
         try:

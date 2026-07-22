@@ -63,14 +63,20 @@
   
   .group-selector-container {
     margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .group-select-wrapper {
     position: relative;
+    flex: 1;
   }
   .group-select {
     width: 100%;
     background: rgba(255, 255, 255, 0.04);
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 12px 16px;
+    padding: 12px 30px 12px 16px;
     border-radius: var(--radius-sm);
     font-size: 13px;
     font-weight: 600;
@@ -80,12 +86,13 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     transition: all 0.3s;
+    text-overflow: ellipsis;
   }
   .group-select:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--accent-glow);
   }
-  .group-selector-container::after {
+  .group-select-wrapper::after {
     content: '▼';
     font-size: 10px;
     color: var(--text2);
@@ -95,6 +102,20 @@
     transform: translateY(-50%);
     pointer-events: none;
   }
+  .add-bot-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    background: linear-gradient(135deg, rgba(0, 229, 201, 0.9) 0%, rgba(0, 168, 201, 0.9) 100%);
+    color: #000;
+    font-weight: 700; font-size: 12px;
+    padding: 0 14px; height: 44px;
+    border-radius: var(--radius-sm);
+    border: none; outline: none;
+    cursor: pointer; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 229, 201, 0.3);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .add-bot-btn:active { transform: scale(0.97); }
 
   /* ===== GLOW BLOBS ===== */
   .glow-blob {
@@ -509,9 +530,14 @@
     </div>
   </div>
   <div class="group-selector-container">
-    <select id="group-select" class="group-select" onchange="switchGroup(this.value)">
-      <option value="">Загрузка групп...</option>
-    </select>
+    <div class="group-select-wrapper">
+      <select id="group-select" class="group-select" onchange="switchGroup(this.value)">
+        <option value="">Загрузка групп...</option>
+      </select>
+    </div>
+    <button class="add-bot-btn" onclick="addBotToGroup()">
+      <span>➕ Добавить бота</span>
+    </button>
   </div>
 </div>
 
@@ -728,11 +754,22 @@ let appData = {
   has_custom_rules: false
 };
 
+let currentTabIndex = 0;
+const tabsList = [
+  { id: 'tab-main', index: 0 },
+  { id: 'tab-rules', index: 1 },
+  { id: 'tab-ai', index: 2 },
+  { id: 'tab-words', index: 3 },
+  { id: 'tab-leaderboard', index: 4 }
+];
+
 // Переключение вкладок
 function switchTabNav(id, index) {
+  currentTabIndex = index;
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const targetTab = document.getElementById(id);
+  if (targetTab) targetTab.classList.add('active');
   
   const items = document.querySelectorAll('.nav-item');
   if (items[index]) {
@@ -744,6 +781,35 @@ function switchTabNav(id, index) {
     }
   }
 }
+
+// Перетаскивание / Свайп пальцем между вкладками
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
+document.addEventListener('touchstart', e => {
+  if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON', 'LABEL'].includes(e.target.tagName) || e.target.closest('button')) return;
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON', 'LABEL'].includes(e.target.tagName) || e.target.closest('button')) return;
+  touchEndX = e.changedTouches[0].screenX;
+  touchEndY = e.changedTouches[0].screenY;
+  
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+  
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+    if (diffX < 0 && currentTabIndex < tabsList.length - 1) {
+      switchTabNav(tabsList[currentTabIndex + 1].id, currentTabIndex + 1);
+    } else if (diffX > 0 && currentTabIndex > 0) {
+      switchTabNav(tabsList[currentTabIndex - 1].id, currentTabIndex - 1);
+    }
+  }
+}, { passive: true });
 
 // Показать/скрыть лоадер
 function showLoader(show = true) {
@@ -802,6 +868,16 @@ function showError(msg) {
     groupSelect.innerHTML = `<option value="">Ошибка загрузки</option>`;
   }
   document.getElementById('header-title').textContent = "Ошибка API";
+}
+
+function addBotToGroup() {
+  const username = appData.bot_username || "GroupControls_bot";
+  const url = `https://t.me/${username}?startgroup=true`;
+  if (tg && tg.openTelegramLink) {
+    tg.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 // Изменение выбранной группы

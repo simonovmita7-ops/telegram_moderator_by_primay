@@ -183,10 +183,12 @@ async def handle_api_data(request):
                 })
             leaderboard.sort(key=lambda x: (x["wins"], x["win_rate"]), reverse=True)
 
+            bot_username = app.get("bot_username", "")
             data = {
                 "groups": group_list,
                 "selected_group_id": selected_group_tg_id,
                 "global_subscription_channel": global_sub,
+                "bot_username": bot_username,
                 "stats": stats,
                 "violations": violations_data,
                 "rules": _parse_rules(rules_raw),
