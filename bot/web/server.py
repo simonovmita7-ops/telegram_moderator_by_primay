@@ -413,6 +413,17 @@ def _cat_badge(cat: str) -> str:
     return mapping.get(cat, "badge-purple")
 
 
+async def handle_status(request):
+    app = request.app
+    settings = app.get("settings")
+    version = getattr(settings, "bot_version", "Beta 1.3") if settings else "Beta 1.3"
+    return web.json_response({
+        "status": "online",
+        "online": True,
+        "version": version
+    })
+
+
 async def create_app(db=None, rules_loader=None, bot=None, settings=None) -> web.Application:
     app = web.Application(middlewares=[cors_middleware])
     app["db"] = db
@@ -422,6 +433,7 @@ async def create_app(db=None, rules_loader=None, bot=None, settings=None) -> web
 
     app.router.add_get("/", handle_index)
     app.router.add_get("/index.html", handle_index)
+    app.router.add_get("/api/status", handle_status)
     app.router.add_get("/api/miniapp/data", handle_api_data)
     app.router.add_post("/api/miniapp/check_subscription", handle_check_subscription)
     
