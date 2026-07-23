@@ -433,7 +433,7 @@ async def handle_unpin_and_delete_warnings(request):
             if bot:
                 from bot.models import Warning as DBWarning
                 res = await session.execute(
-                    select(DBWarning.message_id).where(DBWarning.group_id == group.id)
+                    select(DBWarning.chat_message_id).where(DBWarning.group_id == group.id)
                 )
                 msg_ids = [m for m in res.scalars().all() if m]
                 for mid in msg_ids:
@@ -464,7 +464,7 @@ async def handle_reset_all_violations(request):
             if bot:
                 from bot.models import Warning as DBWarning
                 res = await session.execute(
-                    select(DBWarning.message_id).where(DBWarning.group_id == group.id)
+                    select(DBWarning.chat_message_id).where(DBWarning.group_id == group.id)
                 )
                 msg_ids = [m for m in res.scalars().all() if m]
                 for mid in msg_ids:
