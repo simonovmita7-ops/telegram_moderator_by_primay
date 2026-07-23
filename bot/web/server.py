@@ -445,6 +445,10 @@ async def handle_unpin_and_delete_warnings(request):
                         await bot.delete_message(group.telegram_id, mid)
                     except Exception:
                         pass
+
+            from bot.models import Warning as DBWarning
+            await session.execute(delete(DBWarning).where(DBWarning.group_id == group.id))
+            await session.flush()
             return web.json_response({"success": True})
     except Exception as e:
         return web.json_response({"error": str(e)}, status=400)
