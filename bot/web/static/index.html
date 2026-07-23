@@ -566,32 +566,46 @@
     border-color: var(--accent2);
     box-shadow: 0 4px 20px rgba(0, 229, 201, 0.15);
   }
-  .provider-card.dimmed {
-    opacity: 0.35;
-    pointer-events: none;
-    filter: grayscale(0.6);
+  .dimmed {
+    opacity: 0.35 !important;
+    pointer-events: none !important;
+    filter: grayscale(0.6) !important;
+    transition: all 0.4s ease;
   }
 
-  /* Multi-Mode Rainbow Neon Animation */
-  .provider-card-multi {
+  /* Multi-Mode Toggle Card with Animated Rainbow Neon Contour */
+  .multi-mode-card {
     position: relative;
-    z-index: 1;
-    overflow: hidden;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.4s ease;
   }
-  .provider-card-multi.active {
-    background: #0f131a;
+  .multi-mode-card.active {
     border-color: transparent !important;
-    box-shadow: 0 8px 30px rgba(0, 229, 201, 0.25), 0 0 40px rgba(168, 85, 247, 0.25);
+    box-shadow: 0 0 25px rgba(0, 229, 201, 0.25), 0 0 35px rgba(168, 85, 247, 0.25);
   }
-  .provider-card-multi.active::before {
+  .multi-mode-card.active::before {
     content: '';
     position: absolute;
     top: -2px; left: -2px; right: -2px; bottom: -2px;
     background: linear-gradient(90deg, #00e5c9, #a855f7, #ec4899, #f59e0b, #3b82f6, #00e5c9);
-    background-size: 350% 350%;
-    border-radius: 18px;
-    z-index: -1;
+    background-size: 300% 300%;
+    border-radius: 22px;
+    z-index: 0;
     animation: rainbowNeon 3s linear infinite;
+  }
+  .multi-mode-card.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #0f131a;
+    border-radius: 20px;
+    z-index: 1;
+  }
+  .multi-mode-card > * {
+    position: relative;
+    z-index: 2;
   }
   @keyframes rainbowNeon {
     0% { background-position: 0% 50%; }
@@ -827,19 +841,24 @@
     </div>
   </div>
 
+  <div class="card multi-mode-card" id="multi-mode-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding: 4px 0;">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <span style="font-size:15px; font-weight:700; color:#00e5c9;">⚡ Мульти-режим</span>
+        <span style="font-size:11px; color:var(--text2);">Параллельный запуск всех ИИ — побеждает самый быстрый ответ</span>
+      </div>
+      <label class="toggle-switch" style="transform: scale(1.05); margin-right: 4px;">
+        <input type="checkbox" id="toggle-multi-mode" onchange="toggleMultiMode()">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title"><span>🤖</span>Выбор провайдера ИИ</div>
     <p style="font-size: 12px; color: var(--text2); margin-top: 4px; margin-bottom: 8px;">Выберите нейросеть для быстрой и точной модерации:</p>
-    <div class="provider-cards-grid">
+    <div class="provider-cards-grid" id="provider-cards-grid">
       
-      <div class="provider-card provider-card-multi" id="provider-multi" onclick="selectAiProvider('multi')">
-        <div class="provider-info">
-          <div class="provider-name" style="color:#00e5c9;">⚡ Мульти-режим</div>
-          <div class="provider-desc">Параллельный запуск всех ИИ — побеждает нейросеть с самым быстрым ответом</div>
-        </div>
-        <div class="provider-radio"></div>
-      </div>
-
       <div class="provider-card" id="provider-groq" onclick="selectAiProvider('groq')">
         <div class="provider-info">
           <div class="provider-name">Groq Llama-3</div>
@@ -1101,33 +1120,54 @@ function render() {
   document.getElementById('stat-mutes').textContent = appData.stats.mutes;
   document.getElementById('stat-kicks').textContent = appData.stats.kicks;
 
-  // Переключатель ИИ
-  document.getElementById('toggle-ai').checked = appData.ai_enabled;
+  // Переключатель ИИ (Глобальный статус)
+  const isAiOn = Boolean(appData.ai_enabled);
+  document.getElementById('toggle-ai').checked = isAiOn;
   const aiContainer = document.getElementById('ai-toggle-container');
   if (aiContainer) {
-    if (appData.ai_enabled) {
+    if (isAiOn) {
       aiContainer.classList.add('on');
     } else {
       aiContainer.classList.remove('on');
     }
   }
 
-  // Провайдер ИИ
+  // Провайдер ИИ & Мульти-режим
   const currentProvider = (appData.ai_provider || 'gemini').toLowerCase();
   const isMulti = currentProvider === 'multi';
-  
-  ['multi', 'gemini', 'groq', 'sambanova'].forEach(p => {
+  const multiCard = document.getElementById('multi-mode-card');
+  const toggleMulti = document.getElementById('toggle-multi-mode');
+
+  if (toggleMulti) {
+    toggleMulti.checked = isMulti;
+    toggleMulti.disabled = !isAiOn;
+  }
+
+  if (multiCard) {
+    if (!isAiOn) {
+      multiCard.classList.remove('active');
+      multiCard.classList.add('dimmed');
+    } else if (isMulti) {
+      multiCard.classList.add('active');
+      multiCard.classList.remove('dimmed');
+    } else {
+      multiCard.classList.remove('active');
+      multiCard.classList.remove('dimmed');
+    }
+  }
+
+  ['groq', 'sambanova', 'gemini'].forEach(p => {
     const card = document.getElementById('provider-' + p);
     if (card) {
-      if (p === currentProvider) {
-        card.classList.add('active');
-        card.classList.remove('dimmed');
-      } else {
+      if (!isAiOn || isMulti) {
         card.classList.remove('active');
-        if (isMulti) {
-          card.classList.add('dimmed');
+        card.classList.add('dimmed');
+      } else {
+        card.classList.remove('dimmed');
+        if (p === currentProvider) {
+          card.classList.add('active');
         } else {
-          card.classList.remove('dimmed');
+          card.classList.remove('active');
         }
       }
     }
@@ -1294,6 +1334,47 @@ async function toggleAi() {
     console.error(e);
     // Откат
     appData.ai_enabled = !appData.ai_enabled;
+    render();
+  }
+}
+
+// Переключение Мульти-режима
+async function toggleMultiMode() {
+  if (!appData.selected_group_id) return;
+  const currentProvider = (appData.ai_provider || 'gemini').toLowerCase();
+  const isMulti = currentProvider === 'multi';
+  
+  let targetProvider = isMulti ? (appData.last_single_provider || 'gemini') : 'multi';
+  if (!isMulti) {
+    appData.last_single_provider = currentProvider;
+  }
+  
+  appData.ai_provider = targetProvider;
+  render();
+
+  try {
+    const r = await fetch(`${API_BASE}/api/miniapp/set_ai_provider`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ group_id: appData.selected_group_id, provider: targetProvider })
+    });
+    if (r.ok) {
+      const data = await r.json();
+      if (data.success) {
+        appData.ai_provider = data.ai_provider;
+        render();
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      } else {
+        appData.ai_provider = currentProvider;
+        render();
+      }
+    } else {
+      appData.ai_provider = currentProvider;
+      render();
+    }
+  } catch (e) {
+    console.error(e);
+    appData.ai_provider = currentProvider;
     render();
   }
 }
