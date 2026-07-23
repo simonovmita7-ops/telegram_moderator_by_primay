@@ -192,27 +192,40 @@ class ModerationService:
 
         issued_by = None
         if decision.punishment_type == PunishmentType.WARNING:
+            if not getattr(gs, "warnings_enabled", True):
+                logger.info(f"Предупреждения отключены в настройках группы {group.id}, наказание не выдается.")
+                return
             await self._issue_warning(bot, session, group, gs, user_id, reason,
-                                      decision.next_on_repeat, violation.id, issued_by)
+                                      decision.next_on_repeat, violation.id, issued_by, message_id)
         elif decision.punishment_type == PunishmentType.MUTE:
+            if not getattr(gs, "mutes_enabled", True):
+                logger.info(f"Муты отключены в настройках группы {group.id}, наказание не выдается.")
+                return
             await self._issue_mute(bot, session, group, gs, user_id, reason,
-                                   decision.duration_seconds or gs.default_mute_duration, issued_by)
+                                   decision.duration_seconds or gs.default_mute_duration, issued_by, message_id)
         elif decision.punishment_type == PunishmentType.KICK:
+            if not getattr(gs, "kicks_enabled", True):
+                logger.info(f"Кики отключены в настройках группы {group.id}, наказание не выдается.")
+                return
             await self._issue_kick(bot, session, group, gs, user_id, reason,
-                                   decision.duration_seconds or gs.default_kick_duration, issued_by)
+                                   decision.duration_seconds or gs.default_kick_duration, issued_by, message_id)
         elif decision.punishment_type == PunishmentType.BAN:
             await self._issue_ban(bot, session, group, gs, user_id, reason,
-                                  decision.duration_seconds, issued_by)
+                                  decision.duration_seconds, issued_by, message_id)
 
     async def _issue_warning(self, bot, session, group, gs, user_id, reason,
-                             next_punishment, violation_id, issued_by):
+                             next_punishment, violation_id, issued_by, reply_to_message_id=None):
         chat_id = group.telegram_id
         text = (f"⚠️ <b>Предупреждение</b>\n"
                 f"Пользователь ID {user_id}\n"
                 f"Причина: {reason}\n"
                 f"Следующее нарушение: {next_punishment}")
         try:
-            msg = await bot.send_message(chat_id, text, parse_mode=ParseMode.HTML)
+            try:
+                msg = await bot.send_message(chat_id, text, parse_mode=ParseMode.HTML, reply_to_message_id=reply_to_message_id)
+            except Exception:
+                msg = await bot.send_message(chat_id, text, parse_mode=ParseMode.HTML)
+
             try:
                 await bot.pin_chat_message(chat_id, msg.message_id, disable_notification=True)
             except Exception:
@@ -226,7 +239,7 @@ class ModerationService:
         except Exception as exc:
             logger.error("Ошибка предупреждения: %s", exc)
 
-    async def _issue_mute(self, bot, session, group, gs, user_id, reason, duration, issued_by):
+    async def _issue_mute(self, bot, session, group, gs, user_id, reason, duration, issued_by, reply_to_message_id=None):
         chat_id = group.telegram_id
         until = datetime.utcnow() + timedelta(seconds=duration)
         permissions = ChatPermissions(can_send_messages=False)
@@ -238,12 +251,15 @@ class ModerationService:
                     duration_seconds=duration, expires_at=until, is_active=True, issued_by=issued_by)
         session.add(mute)
         try:
-            await bot.send_message(chat_id,
-                f"🔇 Пользователь ID {user_id} замучен на {duration // 3600}ч. Причина: {reason}")
+            msg_text = f"🔇 Пользователь ID {user_id} замучен на {duration // 3600}ч. Причина: {reason}"
+            try:
+                await bot.send_message(chat_id, msg_text, reply_to_message_id=reply_to_message_id)
+            except Exception:
+                await bot.send_message(chat_id, msg_text)
         except Exception:
             pass
 
-    async def _issue_kick(self, bot, session, group, gs, user_id, reason, duration, issued_by):
+    async def _issue_kick(self, bot, session, group, gs, user_id, reason, duration, issued_by, reply_to_message_id=None):
         chat_id = group.telegram_id
         until = datetime.utcnow() + timedelta(seconds=duration)
         try:
@@ -254,12 +270,15 @@ class ModerationService:
                     duration_seconds=duration, expires_at=until, is_active=True, issued_by=issued_by)
         session.add(kick)
         try:
-            await bot.send_message(chat_id,
-                f"🚪 Пользователь ID {user_id} исключён на {duration // 3600}ч. Причина: {reason}")
+            msg_text = f"🚪 Пользователь ID {user_id} исключён на {duration // 3600}ч. Причина: {reason}"
+            try:
+                await bot.send_message(chat_id, msg_text, reply_to_message_id=reply_to_message_id)
+            except Exception:
+                await bot.send_message(chat_id, msg_text)
         except Exception:
             pass
 
-    async def _issue_ban(self, bot, session, group, gs, user_id, reason, duration, issued_by):
+    async def _issue_ban(self, bot, session, group, gs, user_id, reason, duration, issued_by, reply_to_message_id=None):
         chat_id = group.telegram_id
         is_permanent = duration is None
         until = None if is_permanent else datetime.utcnow() + timedelta(seconds=duration)
@@ -272,7 +291,10 @@ class ModerationService:
         session.add(ban)
         ban_type = "навсегда" if is_permanent else f"на {duration // 3600}ч"
         try:
-            await bot.send_message(chat_id,
-                f"⛔ Пользователь ID {user_id} забанен {ban_type}. Причина: {reason}")
+            msg_text = f"⛔ Пользователь ID {user_id} забанен {ban_type}. Причина: {reason}"
+            try:
+                await bot.send_message(chat_id, msg_text, reply_to_message_id=reply_to_message_id)
+            except Exception:
+                await bot.send_message(chat_id, msg_text)
         except Exception:
             pass

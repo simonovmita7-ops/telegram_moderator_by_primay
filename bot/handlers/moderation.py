@@ -29,6 +29,9 @@ def _extract_message_content(message: Message):
     if message.animation: parts.append("[GIF]")
     if message.photo: parts.append("[ФОТО]")
     if message.video: parts.append("[ВИДЕО]")
+    if getattr(message, "video_note", None): parts.append("[КРУЖОК / ВИДЕОСООБЩЕНИЕ]")
+    if getattr(message, "voice", None): parts.append("[ГОЛОСОВОЕ СООБЩЕНИЕ]")
+    if getattr(message, "audio", None): parts.append("[АУДИОФАЙЛ]")
     if message.document: parts.append(f"[ДОКУМЕНТ: {message.document.file_name or ''}]")
     if message.entities:
         for ent in message.entities:

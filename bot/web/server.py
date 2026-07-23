@@ -8,7 +8,7 @@ import logging
 import urllib.parse
 from pathlib import Path
 from aiohttp import web
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from bot.models import Violation, Warning as DBWarning, Mute, Kick, Ban, GroupSettings, Group, GroupAdmin
 from bot.config import BASE_DIR, Settings
 

@@ -16,18 +16,19 @@ VALID_ACTIONS = {"none", "warning", "mute", "kick", "ban"}
 
 
 def build_system_prompt(rules_text: str) -> str:
-    return f"""Ты — строгий модератор Telegram-группы. Ты анализируешь сообщения ИСКЛЮЧИТЕЛЬНО по правилам группы ниже.
+    return f"""Ты — эксперт-модератор Telegram-группы. Твоя единственная цель — строго и неукоснительно соблюдать ПРАВИЛА ГРУППЫ ниже.
 
 ПРАВИЛА ГРУППЫ:
 {rules_text}
 
-ВАЖНО:
-- Действуй ТОЛЬКО по этим правилам. Никакой самодеятельности.
-- Нарушает правило => violation: true. Не нарушает => violation: false.
-- Анализируй буквально и точно.
-- ВАЖНО: Если один пользователь отправляет несколько (даже 5+) сообщений подряд, но они несут смысл и являются частью нормального разговора (не бессмысленный флуд/набор символов/реклама), то это НЕ считается спамом. Будь лоялен, не квалифицируй содержательные сообщения как спам.
+КРИТИЧЕСКИЕ ИНСТРУКЦИИ ПО СОБЛЮДЕНИЮ ПРАВИЛ:
+1. Правила группы имеют АБСОЛЮТНЫЙ приоритет. Оценивай каждое сообщение строго в соответствии с текстом правил выше.
+2. Если в правилах указано "Удаляй любые видео", "Запрещены картинки/ссылки/видео/кружочки/голосовые", то при наличии меток [ВИДЕО], [КРУЖОК / ВИДЕОСООБЩЕНИЕ], [ФОТО], [ГОЛОСОВОЕ СООБЩЕНИЕ] или ссылок немедленно фиксируй нарушение (violation: true, recommended_action: "warning" или "mute").
+3. Если в правилах написано "Нет правил", "Не кикай, не муть", "Без предупреждений", "Разрешено всё" — то НЕ фиксируй никаких нарушений (violation: false), или если сказано не давать определённые наказания — строго выполняй волю администратора!
+4. Если один пользователь отправляет несколько содержательных сообщений подряд в ходе обычного разговора, это НЕ считается спамом.
+5. Если в правилах есть конкретные указания, что именно писать нарушителю (например, "Пиши что материться нельзя"), то в поле "reason" указывай именно эту понятную причину (например, "Материться нельзя!").
 
-Категории нарушений (строго одна из):
+Категории нарушений (выбери подходящую из списка):
 insult, family_insult, spam, conflict, leak, adult, violence, sticker_abuse, poll_abuse, threat, advertisement, none
 
 Ответь ТОЛЬКО валидным JSON без markdown:
@@ -35,7 +36,7 @@ insult, family_insult, spam, conflict, leak, adult, violence, sticker_abuse, pol
   "violation": true/false,
   "category": "категория",
   "severity": 1-5,
-  "reason": "описание нарушения конкретного правила на русском",
+  "reason": "краткое описание конкретного нарушенного правила на русском",
   "recommended_action": "none|warning|mute|kick|ban"
 }}
 severity: 1=лёгкое, 5=критическое. Нет нарушения — violation: false, category: "none", recommended_action: "none"."""
@@ -85,17 +86,35 @@ def _parse_ai_json(text: str) -> dict[str, Any]:
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
     text = text.strip()
+    
+    # 1. Прямой парсинг
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1 and end > start:
-            try:
-                return json.loads(text[start:end+1])
-            except json.JSONDecodeError:
-                pass
-        raise
+        pass
+
+    # 2. Поиск вырезанного JSON блока {...} через regex
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    # 3. Восстановление обломанного JSON при MAX_TOKENS
+    start = text.find('{')
+    if start != -1:
+        truncated = text[start:]
+        if truncated.count('"') % 2 != 0:
+            truncated += '"'
+        if not truncated.endswith('}'):
+            truncated += '}'
+        try:
+            return json.loads(truncated)
+        except json.JSONDecodeError:
+            pass
+
+    return {"violation": False, "category": "none", "severity": 0, "reason": f"Не удалось разобрать JSON ответа ИИ: {text[:100]}", "recommended_action": "none"}
 
 
 def _normalize_result(data: dict[str, Any]) -> AiModerationResult:
@@ -197,6 +216,8 @@ class AiModerator:
                     for t in pending:
                         t.cancel()
                     return result
+                except (asyncio.CancelledError, GeneratorExit):
+                    pass
                 except Exception as exc:
                     last_error = exc
                     logger.warning("[AI Multi-Race] Ошибка провайдера: %s", exc)
@@ -214,7 +235,7 @@ class AiModerator:
                 headers={"Content-Type": "application/json"},
                 json={"system_instruction": {"parts": [{"text": system_prompt}]},
                       "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-                      "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json", "maxOutputTokens": 300}})
+                      "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json", "maxOutputTokens": 1000}})
             if r.status_code == 429 and attempt < 3:
                 await asyncio.sleep(delay); delay *= 2; continue
             r.raise_for_status()

@@ -64,4 +64,4 @@ async def update_bot_status(bot: Bot, settings: Settings, is_online: bool) -> No
         else:
             logger.error(f"Не удалось обновить статус бота в канале (BadRequest): {e}")
     except Exception as e:
-        logger.error(f"Не удалось обновить статус бота в канале: {e}")
+        logger.warning(f"Временное предупреждение при обновлении статуса в канале: {e}")
