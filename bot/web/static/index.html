@@ -555,7 +555,7 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .provider-card:hover {
     background: rgba(255, 255, 255, 0.06);
@@ -566,6 +566,39 @@
     border-color: var(--accent2);
     box-shadow: 0 4px 20px rgba(0, 229, 201, 0.15);
   }
+  .provider-card.dimmed {
+    opacity: 0.35;
+    pointer-events: none;
+    filter: grayscale(0.6);
+  }
+
+  /* Multi-Mode Rainbow Neon Animation */
+  .provider-card-multi {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .provider-card-multi.active {
+    background: #0f131a;
+    border-color: transparent !important;
+    box-shadow: 0 8px 30px rgba(0, 229, 201, 0.25), 0 0 40px rgba(168, 85, 247, 0.25);
+  }
+  .provider-card-multi.active::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    background: linear-gradient(90deg, #00e5c9, #a855f7, #ec4899, #f59e0b, #3b82f6, #00e5c9);
+    background-size: 350% 350%;
+    border-radius: 18px;
+    z-index: -1;
+    animation: rainbowNeon 3s linear infinite;
+  }
+  @keyframes rainbowNeon {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
   .provider-info {
     display: flex;
     flex-direction: column;
@@ -597,6 +630,10 @@
   .provider-card.active .provider-radio {
     border-color: var(--accent2);
     background: var(--accent2);
+  }
+  .provider-card-multi.active .provider-radio {
+    border-color: #a855f7;
+    background: linear-gradient(135deg, #00e5c9, #a855f7);
   }
   .provider-card.active .provider-radio::after {
     content: '';
@@ -795,10 +832,26 @@
     <p style="font-size: 12px; color: var(--text2); margin-top: 4px; margin-bottom: 8px;">Выберите нейросеть для быстрой и точной модерации:</p>
     <div class="provider-cards-grid">
       
+      <div class="provider-card provider-card-multi" id="provider-multi" onclick="selectAiProvider('multi')">
+        <div class="provider-info">
+          <div class="provider-name" style="color:#00e5c9;">⚡ Мульти-режим</div>
+          <div class="provider-desc">Параллельный запуск всех ИИ — побеждает нейросеть с самым быстрым ответом</div>
+        </div>
+        <div class="provider-radio"></div>
+      </div>
+
       <div class="provider-card" id="provider-groq" onclick="selectAiProvider('groq')">
         <div class="provider-info">
           <div class="provider-name">Groq Llama-3</div>
           <div class="provider-desc">Сверхбыстрые LPU-чипы и мгновенный анализ (800 токенов/сек)</div>
+        </div>
+        <div class="provider-radio"></div>
+      </div>
+
+      <div class="provider-card" id="provider-sambanova" onclick="selectAiProvider('sambanova')">
+        <div class="provider-info">
+          <div class="provider-name">SambaNova Llama-405B</div>
+          <div class="provider-desc">Гигантская флагманская нейросеть умственного уровня GPT-4o</div>
         </div>
         <div class="provider-radio"></div>
       </div>
@@ -1061,13 +1114,21 @@ function render() {
 
   // Провайдер ИИ
   const currentProvider = (appData.ai_provider || 'gemini').toLowerCase();
-  ['gemini', 'groq'].forEach(p => {
+  const isMulti = currentProvider === 'multi';
+  
+  ['multi', 'gemini', 'groq', 'sambanova'].forEach(p => {
     const card = document.getElementById('provider-' + p);
     if (card) {
       if (p === currentProvider) {
         card.classList.add('active');
+        card.classList.remove('dimmed');
       } else {
         card.classList.remove('active');
+        if (isMulti) {
+          card.classList.add('dimmed');
+        } else {
+          card.classList.remove('dimmed');
+        }
       }
     }
   });
