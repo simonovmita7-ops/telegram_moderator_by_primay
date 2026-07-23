@@ -1,5 +1,5 @@
 """
-ИИ-модератор: анализ сообщений через Google Gemini или Groq Cloud API.
+ИИ-модератор: анализ сообщений через Google Gemini, Groq Cloud, SambaNova или Мульти-режим (гонка нейросетей).
 Работает СТРОГО по правилам из файла правила.txt. Без встроенной чувствительности.
 """
 from __future__ import annotations
@@ -133,14 +133,26 @@ class AiModerator:
             is_poll, poll_question, poll_options)
         try:
             p = (provider or "gemini").lower()
-            if p == "groq":
+            if p == "multi":
+                raw_text = await self._call_multi_race(user_prompt, system_prompt)
+            elif p == "groq":
                 try:
                     raw_text = await self._call_groq(user_prompt, system_prompt)
                 except Exception as exc:
-                    logger.warning("[AI] Groq недоступен, фоллбек на Gemini: %s", exc)
-                    raw_text = await self._call_gemini(user_prompt, system_prompt)
+                    logger.warning("[AI] Groq недоступен, фоллбек на резервные ИИ: %s", exc)
+                    raw_text = await self._call_any_fallback(user_prompt, system_prompt)
+            elif p == "sambanova":
+                try:
+                    raw_text = await self._call_sambanova(user_prompt, system_prompt)
+                except Exception as exc:
+                    logger.warning("[AI] SambaNova недоступен, фоллбек на резервные ИИ: %s", exc)
+                    raw_text = await self._call_any_fallback(user_prompt, system_prompt)
             else:
-                raw_text = await self._call_gemini(user_prompt, system_prompt)
+                try:
+                    raw_text = await self._call_gemini(user_prompt, system_prompt)
+                except Exception as exc:
+                    logger.warning("[AI] Gemini недоступен, фоллбек на резервные ИИ: %s", exc)
+                    raw_text = await self._call_any_fallback(user_prompt, system_prompt)
 
             data = _parse_ai_json(raw_text)
             return _normalize_result(data)
@@ -148,6 +160,48 @@ class AiModerator:
             logger.warning("[AI] Предупреждение / ошибка: %s", exc)
             return AiModerationResult(violation=False, category="none", severity=0,
                 reason=f"Ошибка ИИ ({provider}): {exc}", recommended_action="none", raw_response={"error": str(exc)})
+
+    async def _call_any_fallback(self, user_prompt, system_prompt):
+        """Резервный перебор всех настроенных провайдеров."""
+        for provider_func, name in [
+            (self._call_groq, "Groq"),
+            (self._call_sambanova, "SambaNova"),
+            (self._call_gemini, "Gemini")
+        ]:
+            try:
+                return await provider_func(user_prompt, system_prompt)
+            except Exception as exc:
+                logger.warning("[AI Fallback] %s недоступен: %s", name, exc)
+        raise ValueError("Все ИИ провайдеры недоступны")
+
+    async def _call_multi_race(self, user_prompt, system_prompt):
+        """Параллельный запуск всех настроенных провайдеров — возвращает первый успешный ответ."""
+        tasks = []
+        if getattr(self._settings, "groq_api_key", None):
+            tasks.append(asyncio.create_task(self._call_groq(user_prompt, system_prompt)))
+        if getattr(self._settings, "sambanova_api_key", None):
+            tasks.append(asyncio.create_task(self._call_sambanova(user_prompt, system_prompt)))
+        if getattr(self._settings, "gemini_api_key", None):
+            tasks.append(asyncio.create_task(self._call_gemini(user_prompt, system_prompt)))
+
+        if not tasks:
+            raise ValueError("Нет настроенных ключей ИИ для мульти-режима")
+
+        pending = tasks
+        last_error = None
+        while pending:
+            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for completed_task in done:
+                try:
+                    result = completed_task.result()
+                    for t in pending:
+                        t.cancel()
+                    return result
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning("[AI Multi-Race] Ошибка провайдера: %s", exc)
+
+        raise last_error or ValueError("Все ИИ провайдеры вернули ошибку в мульти-режиме")
 
     async def _call_gemini(self, user_prompt, system_prompt):
         api_key = getattr(self._settings, "gemini_api_key", None)
@@ -181,6 +235,19 @@ class AiModerator:
         if not api_key: raise ValueError("GROQ_API_KEY не задан")
         model = getattr(self._settings, "groq_model", "llama-3.3-70b-versatile")
         r = await self._client.post("https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model,
+                  "messages": [{"role": "system", "content": system_prompt},
+                               {"role": "user", "content": user_prompt}],
+                  "temperature": 0.1, "response_format": {"type": "json_object"}})
+        r.raise_for_status()
+        return r.json()["choices"][0]["message"]["content"]
+
+    async def _call_sambanova(self, user_prompt, system_prompt):
+        api_key = getattr(self._settings, "sambanova_api_key", None)
+        if not api_key: raise ValueError("SAMBANOVA_API_KEY не задан")
+        model = getattr(self._settings, "sambanova_model", "Meta-Llama-3.1-405B-Instruct")
+        r = await self._client.post("https://api.sambanova.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={"model": model,
                   "messages": [{"role": "system", "content": system_prompt},

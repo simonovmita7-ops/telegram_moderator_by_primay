@@ -102,6 +102,9 @@ class GroupSettings(Base):
     auto_ban_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     logging_mode: Mapped[str] = mapped_column(String(32), default="off")
     warning_pin_duration: Mapped[int] = mapped_column(Integer, default=86400)
+    mutes_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    kicks_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    warnings_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     # Текст правил группы
     rules_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

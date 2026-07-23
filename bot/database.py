@@ -25,6 +25,22 @@ class Database:
         async with self._engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
+            def _check_migrations(sync_conn):
+                from sqlalchemy import inspect, text
+                inspector = inspect(sync_conn)
+                if "settings" in inspector.get_table_names():
+                    cols = [c["name"] for c in inspector.get_columns("settings")]
+                    if "ai_provider" not in cols:
+                        sync_conn.execute(text("ALTER TABLE settings ADD COLUMN ai_provider VARCHAR(32) DEFAULT 'gemini'"))
+                    if "mutes_enabled" not in cols:
+                        sync_conn.execute(text("ALTER TABLE settings ADD COLUMN mutes_enabled BOOLEAN DEFAULT 1"))
+                    if "kicks_enabled" not in cols:
+                        sync_conn.execute(text("ALTER TABLE settings ADD COLUMN kicks_enabled BOOLEAN DEFAULT 1"))
+                    if "warnings_enabled" not in cols:
+                        sync_conn.execute(text("ALTER TABLE settings ADD COLUMN warnings_enabled BOOLEAN DEFAULT 1"))
+
+            await conn.run_sync(_check_migrations)
+
     @asynccontextmanager
     async def session(self):
         async with self._session_factory() as session:

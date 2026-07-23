@@ -199,6 +199,12 @@ async def handle_api_data(request):
                 "ai_provider": getattr(gs, "ai_provider", "gemini") or "gemini",
                 "enabled_rules": gs.enabled_rules or {},
                 "has_custom_rules": gs.rules_text is not None and len(gs.rules_text.strip()) > 0,
+                "default_mute_duration": gs.default_mute_duration,
+                "default_kick_duration": gs.default_kick_duration,
+                "warning_pin_duration": gs.warning_pin_duration,
+                "mutes_enabled": getattr(gs, "mutes_enabled", True),
+                "kicks_enabled": getattr(gs, "kicks_enabled", True),
+                "warnings_enabled": getattr(gs, "warnings_enabled", True),
                 "leaderboard": leaderboard[:10],  # Топ-10
             }
             return web.json_response(data)
@@ -372,6 +378,116 @@ async def handle_set_ai_provider(request):
         return web.json_response({"error": str(e)}, status=400)
 
 
+async def handle_set_punishments(request):
+    try:
+        req_data = await request.json()
+        group_tg_id = int(req_data.get("group_id"))
+        db = request.app.get("db")
+        async with db.session() as session:
+            user_id, group = await verify_user_and_group(session, request, group_tg_id)
+            if not group:
+                return web.json_response({"error": "Доступ запрещён"}, status=403)
+            
+            from bot.services.settings_service import SettingsService
+            gs_svc = SettingsService()
+            gs = await gs_svc.get_or_create(session, group.id)
+            
+            if "default_mute_duration" in req_data:
+                gs.default_mute_duration = int(req_data["default_mute_duration"])
+            if "default_kick_duration" in req_data:
+                gs.default_kick_duration = int(req_data["default_kick_duration"])
+            if "warning_pin_duration" in req_data:
+                gs.warning_pin_duration = int(req_data["warning_pin_duration"])
+            if "mutes_enabled" in req_data:
+                gs.mutes_enabled = bool(req_data["mutes_enabled"])
+            if "kicks_enabled" in req_data:
+                gs.kicks_enabled = bool(req_data["kicks_enabled"])
+            if "warnings_enabled" in req_data:
+                gs.warnings_enabled = bool(req_data["warnings_enabled"])
+                
+            await session.flush()
+            return web.json_response({
+                "success": True,
+                "default_mute_duration": gs.default_mute_duration,
+                "default_kick_duration": gs.default_kick_duration,
+                "warning_pin_duration": gs.warning_pin_duration,
+                "mutes_enabled": gs.mutes_enabled,
+                "kicks_enabled": gs.kicks_enabled,
+                "warnings_enabled": gs.warnings_enabled,
+            })
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=400)
+
+
+async def handle_unpin_and_delete_warnings(request):
+    try:
+        req_data = await request.json()
+        group_tg_id = int(req_data.get("group_id"))
+        db = request.app.get("db")
+        async with db.session() as session:
+            user_id, group = await verify_user_and_group(session, request, group_tg_id)
+            if not group:
+                return web.json_response({"error": "Доступ запрещён"}, status=403)
+            
+            bot = request.app.get("bot")
+            if bot:
+                from bot.models import Warning as DBWarning
+                res = await session.execute(
+                    select(DBWarning.message_id).where(DBWarning.group_id == group.id)
+                )
+                msg_ids = [m for m in res.scalars().all() if m]
+                for mid in msg_ids:
+                    try:
+                        await bot.unpin_chat_message(group.telegram_id, mid)
+                    except Exception:
+                        pass
+                    try:
+                        await bot.delete_message(group.telegram_id, mid)
+                    except Exception:
+                        pass
+            return web.json_response({"success": True})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=400)
+
+
+async def handle_reset_all_violations(request):
+    try:
+        req_data = await request.json()
+        group_tg_id = int(req_data.get("group_id"))
+        db = request.app.get("db")
+        async with db.session() as session:
+            user_id, group = await verify_user_and_group(session, request, group_tg_id)
+            if not group:
+                return web.json_response({"error": "Доступ запрещён"}, status=403)
+            
+            bot = request.app.get("bot")
+            if bot:
+                from bot.models import Warning as DBWarning
+                res = await session.execute(
+                    select(DBWarning.message_id).where(DBWarning.group_id == group.id)
+                )
+                msg_ids = [m for m in res.scalars().all() if m]
+                for mid in msg_ids:
+                    try:
+                        await bot.unpin_chat_message(group.telegram_id, mid)
+                    except Exception:
+                        pass
+                    try:
+                        await bot.delete_message(group.telegram_id, mid)
+                    except Exception:
+                        pass
+
+            from bot.models import Violation, Warning as DBWarning, Mute, Kick
+            await session.execute(delete(Violation).where(Violation.group_id == group.id))
+            await session.execute(delete(DBWarning).where(DBWarning.group_id == group.id))
+            await session.execute(delete(Mute).where(Mute.group_id == group.id))
+            await session.execute(delete(Kick).where(Kick.group_id == group.id))
+            await session.flush()
+            return web.json_response({"success": True})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=400)
+
+
 def _parse_rules(text: str) -> list[dict]:
     """Парсим правила в структурированный список."""
     rules = []
@@ -469,6 +585,9 @@ async def create_app(db=None, rules_loader=None, bot=None, settings=None) -> web
     app.router.add_post("/api/miniapp/set_rules_text", handle_set_rules_text)
     app.router.add_post("/api/miniapp/toggle_ai", handle_toggle_ai)
     app.router.add_post("/api/miniapp/set_ai_provider", handle_set_ai_provider)
+    app.router.add_post("/api/miniapp/set_punishments", handle_set_punishments)
+    app.router.add_post("/api/miniapp/unpin_and_delete_warnings", handle_unpin_and_delete_warnings)
+    app.router.add_post("/api/miniapp/reset_all_violations", handle_reset_all_violations)
     
     app.router.add_static("/static", STATIC_DIR)
 

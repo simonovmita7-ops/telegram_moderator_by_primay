@@ -526,6 +526,49 @@
     font-size: 14px;
   }
 
+  /* ===== PRESETS & PUNISHMENT SETTINGS ===== */
+  .preset-row {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .preset-btn {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+  }
+  .preset-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .preset-btn.active {
+    background: rgba(0, 229, 201, 0.15);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .custom-time-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .custom-time-row input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
   /* ===== AI CONTROL ===== */
   .ai-control-card {
     transition: background-color 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), box-shadow 0.8s ease, border-color 0.8s ease;
@@ -826,10 +869,83 @@
     </div>
   </div>
 
+  <!-- Настройки Мута -->
   <div class="card">
-    <div class="card-title"><span>⚙️</span>Тонкая настройка правил ИИ</div>
-    <div id="rules-toggle-list">
-      <!-- populated dynamically -->
+    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0;">
+      <div class="switch-label">
+        <span class="switch-title" style="font-size:15px;">🔇 Муты</span>
+        <span class="switch-sub" style="font-size:11px;">Ограничение отправки сообщений</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle-mutes" onchange="savePunishmentSettings()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div style="font-size:12px; color:var(--text2); margin-top:4px;">Длительность мута по умолчанию:</div>
+    <div class="preset-row">
+      <button class="preset-btn" id="mute-preset-3" onclick="setMutePreset(3)">3 часа</button>
+      <button class="preset-btn" id="mute-preset-12" onclick="setMutePreset(12)">12 часов</button>
+      <button class="preset-btn" id="mute-preset-24" onclick="setMutePreset(24)">24 часа</button>
+    </div>
+    <div class="custom-time-row">
+      <input type="text" id="mute-custom-input" placeholder="Своё время ЧЧ:ММ (напр. 05:30)">
+      <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="applyCustomMute()">Применить</button>
+    </div>
+    <div id="mute-status-label" style="font-size:11px; color:var(--accent2); margin-top:6px; font-weight:600;">Текущее время: 3 часа</div>
+  </div>
+
+  <!-- Настройки Кика -->
+  <div class="card">
+    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0;">
+      <div class="switch-label">
+        <span class="switch-title" style="font-size:15px;">👢 Кики</span>
+        <span class="switch-sub" style="font-size:11px;">Удаление нарушителя из группы</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle-kicks" onchange="savePunishmentSettings()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div style="font-size:12px; color:var(--text2); margin-top:4px;">Длительность бана/кика по умолчанию:</div>
+    <div class="preset-row">
+      <button class="preset-btn" id="kick-preset-3" onclick="setKickPreset(3)">3 часа</button>
+      <button class="preset-btn" id="kick-preset-12" onclick="setKickPreset(12)">12 часов</button>
+      <button class="preset-btn" id="kick-preset-24" onclick="setKickPreset(24)">24 часа</button>
+    </div>
+    <div class="custom-time-row">
+      <input type="text" id="kick-custom-input" placeholder="Своё время ЧЧ:ММ (напр. 12:00)">
+      <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="applyCustomKick()">Применить</button>
+    </div>
+    <div id="kick-status-label" style="font-size:11px; color:var(--accent2); margin-top:6px; font-weight:600;">Текущее время: 24 часа</div>
+  </div>
+
+  <!-- Настройки Предупреждений & Очистка -->
+  <div class="card">
+    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0;">
+      <div class="switch-label">
+        <span class="switch-title" style="font-size:15px;">⚠️ Предупреждения & Закреп</span>
+        <span class="switch-sub" style="font-size:11px;">Выдача предупреждений и закреп сообщений бота</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle-warnings" onchange="savePunishmentSettings()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div style="font-size:12px; color:var(--text2); margin-top:4px;">Время закрепа предупреждений:</div>
+    <div class="preset-row">
+      <button class="preset-btn" id="warn-preset-3" onclick="setWarnPreset(3)">3 часа</button>
+      <button class="preset-btn" id="warn-preset-12" onclick="setWarnPreset(12)">12 часов</button>
+      <button class="preset-btn" id="warn-preset-24" onclick="setWarnPreset(24)">24 часа</button>
+    </div>
+    <div class="custom-time-row">
+      <input type="text" id="warn-custom-input" placeholder="Своё время ЧЧ:ММ (напр. 08:00)">
+      <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="applyCustomWarn()">Применить</button>
+    </div>
+    <div id="warn-status-label" style="font-size:11px; color:var(--accent2); margin-top:6px; font-weight:600; margin-bottom:12px;">Текущее время: 24 часа</div>
+
+    <div style="display:flex; flex-direction:column; gap:8px; border-top:1px solid rgba(255,255,255,0.08); padding-top:12px;">
+      <button class="btn btn-secondary" style="width:100%; justify-content:center;" onclick="unpinAndDeleteWarnings()">📌 Открепить и удалить все сообщения бота</button>
+      <button class="btn btn-danger" style="width:100%; justify-content:center; background:rgba(239,68,68,0.15); color:var(--danger); border:1px solid rgba(239,68,68,0.3);" onclick="resetAllViolations()">🗑 Сбросить все нарушения (полная очистка)</button>
     </div>
   </div>
 </div>
@@ -1219,6 +1335,36 @@ function render() {
   const vBtn = document.getElementById('violations-expand-btn');
   const vFade = document.getElementById('violations-fade');
   const vWrapper = document.getElementById('violations-wrapper');
+
+  // Настройки мутов, киков, предупреждений
+  const muteSec = appData.default_mute_duration || 10800;
+  const kickSec = appData.default_kick_duration || 86400;
+  const warnSec = appData.warning_pin_duration || 86400;
+
+  const toggleMutes = document.getElementById('toggle-mutes');
+  const toggleKicks = document.getElementById('toggle-kicks');
+  const toggleWarns = document.getElementById('toggle-warnings');
+  if (toggleMutes) toggleMutes.checked = appData.mutes_enabled !== false;
+  if (toggleKicks) toggleKicks.checked = appData.kicks_enabled !== false;
+  if (toggleWarns) toggleWarns.checked = appData.warnings_enabled !== false;
+
+  const muteLabel = document.getElementById('mute-status-label');
+  if (muteLabel) muteLabel.textContent = `Текущее время: ${formatSecondsToHM(muteSec)}`;
+
+  const kickLabel = document.getElementById('kick-status-label');
+  if (kickLabel) kickLabel.textContent = `Текущее время: ${formatSecondsToHM(kickSec)}`;
+
+  const warnLabel = document.getElementById('warn-status-label');
+  if (warnLabel) warnLabel.textContent = `Текущее время: ${formatSecondsToHM(warnSec)}`;
+
+  [3, 12, 24].forEach(h => {
+    const mBtn = document.getElementById('mute-preset-' + h);
+    if (mBtn) mBtn.classList.toggle('active', muteSec === h * 3600);
+    const kBtn = document.getElementById('kick-preset-' + h);
+    if (kBtn) kBtn.classList.toggle('active', kickSec === h * 3600);
+    const wBtn = document.getElementById('warn-preset-' + h);
+    if (wBtn) wBtn.classList.toggle('active', warnSec === h * 3600);
+  });
   
   if (appData.violations && appData.violations.length > 0) {
     vList.innerHTML = appData.violations.map(v => `
@@ -1570,6 +1716,146 @@ async function resetRulesText() {
     console.error(e);
   }
   showLoader(false);
+}
+
+// Вспомогательные функции наказаний и закрепов
+function formatSecondsToHM(seconds) {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (hrs > 0 && mins > 0) return `${hrs} ч ${mins} мин`;
+  if (hrs > 0) return `${hrs} ч`;
+  return `${mins} мин`;
+}
+
+function parseHMToSeconds(str) {
+  if (!str) return null;
+  const match = str.trim().match(/^(\d{1,3}):(\d{2})$/);
+  if (!match) return null;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (m >= 60) return null;
+  return h * 3600 + m * 60;
+}
+
+async function setMutePreset(hours) {
+  await updatePunishments({ default_mute_duration: hours * 3600 });
+}
+async function setKickPreset(hours) {
+  await updatePunishments({ default_kick_duration: hours * 3600 });
+}
+async function setWarnPreset(hours) {
+  await updatePunishments({ warning_pin_duration: hours * 3600 });
+}
+
+async function applyCustomMute() {
+  const val = document.getElementById('mute-custom-input').value;
+  const sec = parseHMToSeconds(val);
+  if (sec === null || sec <= 0) {
+    alert("Укажите время в формате ЧЧ:ММ (напр. 05:30)");
+    return;
+  }
+  await updatePunishments({ default_mute_duration: sec });
+}
+
+async function applyCustomKick() {
+  const val = document.getElementById('kick-custom-input').value;
+  const sec = parseHMToSeconds(val);
+  if (sec === null || sec <= 0) {
+    alert("Укажите время в формате ЧЧ:ММ (напр. 12:00)");
+    return;
+  }
+  await updatePunishments({ default_kick_duration: sec });
+}
+
+async function applyCustomWarn() {
+  const val = document.getElementById('warn-custom-input').value;
+  const sec = parseHMToSeconds(val);
+  if (sec === null || sec <= 0) {
+    alert("Укажите время в формате ЧЧ:ММ (напр. 08:00)");
+    return;
+  }
+  await updatePunishments({ warning_pin_duration: sec });
+}
+
+async function savePunishmentSettings() {
+  const mutesOn = document.getElementById('toggle-mutes').checked;
+  const kicksOn = document.getElementById('toggle-kicks').checked;
+  const warnsOn = document.getElementById('toggle-warnings').checked;
+  await updatePunishments({
+    mutes_enabled: mutesOn,
+    kicks_enabled: kicksOn,
+    warnings_enabled: warnsOn
+  });
+}
+
+async function updatePunishments(payload) {
+  if (!appData.selected_group_id) return;
+  payload.group_id = appData.selected_group_id;
+  try {
+    const r = await fetch(`${API_BASE}/api/miniapp/set_punishments`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) {
+      const res = await r.json();
+      if (res.success) {
+        if (res.default_mute_duration !== undefined) appData.default_mute_duration = res.default_mute_duration;
+        if (res.default_kick_duration !== undefined) appData.default_kick_duration = res.default_kick_duration;
+        if (res.warning_pin_duration !== undefined) appData.warning_pin_duration = res.warning_pin_duration;
+        if (res.mutes_enabled !== undefined) appData.mutes_enabled = res.mutes_enabled;
+        if (res.kicks_enabled !== undefined) appData.kicks_enabled = res.kicks_enabled;
+        if (res.warnings_enabled !== undefined) appData.warnings_enabled = res.warnings_enabled;
+        render();
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function unpinAndDeleteWarnings() {
+  if (!appData.selected_group_id) return;
+  if (!confirm("Открепить и удалить все сообщения бота в чате?")) return;
+  showLoader(true);
+  try {
+    const r = await fetch(`${API_BASE}/api/miniapp/unpin_and_delete_warnings`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ group_id: appData.selected_group_id })
+    });
+    if (r.ok) {
+      alert("Сообщения бота откреплены и удалены!");
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function resetAllViolations() {
+  if (!appData.selected_group_id) return;
+  if (!confirm("Сбросить ВСЕ нарушения и статистику группы? Это действие нельзя отменить.")) return;
+  showLoader(true);
+  try {
+    const r = await fetch(`${API_BASE}/api/miniapp/reset_all_violations`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ group_id: appData.selected_group_id })
+    });
+    if (r.ok) {
+      await loadGroupData(appData.selected_group_id);
+      alert("Статистика и нарушения сброшены!");
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    showLoader(false);
+  }
 }
 
 // Инициализация
