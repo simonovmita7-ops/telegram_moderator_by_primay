@@ -890,12 +890,12 @@
 
   <!-- Настройки Мута -->
   <div class="card">
-    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0;">
-      <div class="switch-label">
+    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+      <div class="switch-label" style="flex:1; min-width:0;">
         <span class="switch-title" style="font-size:15px;">🔇 Муты</span>
         <span class="switch-sub" style="font-size:11px;">Ограничение отправки сообщений</span>
       </div>
-      <label class="toggle-switch">
+      <label class="toggle-switch" style="flex-shrink:0;">
         <input type="checkbox" id="toggle-mutes" onchange="savePunishmentSettings()">
         <span class="slider"></span>
       </label>
@@ -915,12 +915,12 @@
 
   <!-- Настройки Кика -->
   <div class="card">
-    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0;">
-      <div class="switch-label">
+    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+      <div class="switch-label" style="flex:1; min-width:0;">
         <span class="switch-title" style="font-size:15px;">👢 Кики</span>
         <span class="switch-sub" style="font-size:11px;">Удаление нарушителя из группы</span>
       </div>
-      <label class="toggle-switch">
+      <label class="toggle-switch" style="flex-shrink:0;">
         <input type="checkbox" id="toggle-kicks" onchange="savePunishmentSettings()">
         <span class="slider"></span>
       </label>
@@ -940,12 +940,12 @@
 
   <!-- Настройки Предупреждений -->
   <div class="card">
-    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0;">
-      <div class="switch-label">
+    <div class="switch-row" style="border-bottom:none; padding: 0 0 10px 0; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+      <div class="switch-label" style="flex:1; min-width:0;">
         <span class="switch-title" style="font-size:15px;">⚠️ Предупреждения & Закреп</span>
         <span class="switch-sub" style="font-size:11px;">Выдача предупреждений и закреп сообщений бота</span>
       </div>
-      <label class="toggle-switch">
+      <label class="toggle-switch" style="flex-shrink:0;">
         <input type="checkbox" id="toggle-warnings" onchange="savePunishmentSettings()">
         <span class="slider"></span>
       </label>
