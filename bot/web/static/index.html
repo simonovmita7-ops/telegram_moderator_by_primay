@@ -333,26 +333,42 @@
   }
   .expand-btn:hover { background: rgba(255,255,255,0.1); }
 
-  /* ===== STATS GRID ===== */
+  /* ===== STATS GRID & NEON GLOW ===== */
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .stat-box {
-    background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1.5px solid var(--stat-border, rgba(255, 255, 255, 0.1));
     border-radius: var(--radius-sm);
     padding: 14px;
     text-align: center;
     position: relative; overflow: hidden;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  }
-  .stat-box::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: var(--stat-color, var(--accent));
+    box-shadow: 0 0 16px var(--stat-glow, rgba(0, 229, 201, 0.25)), inset 0 0 8px var(--stat-glow, rgba(0, 229, 201, 0.08));
+    transition: all 0.3s ease;
   }
   .stat-num { font-size: 24px; font-weight: 800; color: var(--stat-color, var(--accent)); }
   .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* ===== VIOLATIONS CARD RED-YELLOW NEON ===== */
+  #violations-card {
+    animation: redYellowNeon 3.5s linear infinite;
+    transition: all 0.4s ease;
+  }
+  @keyframes redYellowNeon {
+    0% {
+      border-color: rgba(239, 68, 68, 0.7);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.35), inset 0 0 10px rgba(239, 68, 68, 0.1);
+    }
+    50% {
+      border-color: rgba(245, 158, 11, 0.7);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.35), inset 0 0 10px rgba(245, 158, 11, 0.1);
+    }
+    100% {
+      border-color: rgba(239, 68, 68, 0.7);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.35), inset 0 0 10px rgba(239, 68, 68, 0.1);
+    }
+  }
 
   /* ===== SWITCH / TOGGLE ===== */
   .switch-row {
@@ -800,19 +816,19 @@
 <!-- ==================== TAB: MAIN ==================== -->
 <div id="tab-main" class="tab-content active">
   <div class="stats-grid">
-    <div class="stat-box" style="--stat-color:var(--danger)">
+    <div class="stat-box" style="--stat-color:var(--danger); --stat-border:rgba(239,68,68,0.5); --stat-glow:rgba(239,68,68,0.3);">
       <div class="stat-num" id="stat-violations">—</div>
       <div class="stat-label">Нарушений</div>
     </div>
-    <div class="stat-box" style="--stat-color:var(--warning)">
+    <div class="stat-box" style="--stat-color:var(--warning); --stat-border:rgba(245,158,11,0.5); --stat-glow:rgba(245,158,11,0.3);">
       <div class="stat-num" id="stat-warnings">—</div>
       <div class="stat-label">Предупреждений</div>
     </div>
-    <div class="stat-box" style="--stat-color:var(--accent2)">
+    <div class="stat-box" style="--stat-color:var(--accent2); --stat-border:rgba(0,229,201,0.5); --stat-glow:rgba(0,229,201,0.3);">
       <div class="stat-num" id="stat-mutes">—</div>
       <div class="stat-label">Мутов</div>
     </div>
-    <div class="stat-box" style="--stat-color:var(--success)">
+    <div class="stat-box" style="--stat-color:var(--success); --stat-border:rgba(16,185,129,0.5); --stat-glow:rgba(16,185,129,0.3);">
       <div class="stat-num" id="stat-kicks">—</div>
       <div class="stat-label">Киков</div>
     </div>
