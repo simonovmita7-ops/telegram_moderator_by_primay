@@ -298,3 +298,37 @@ class ModerationService:
                 await bot.send_message(chat_id, msg_text)
         except Exception:
             pass
+
+    async def expire_warning(self, bot, session, warning: Warning) -> None:
+        warning.is_active = False
+        if warning.chat_message_id and warning.group:
+            try:
+                await bot.unpin_chat_message(warning.group.telegram_id, warning.chat_message_id)
+            except Exception:
+                pass
+
+    async def expire_mute(self, bot, session, mute: Mute) -> None:
+        mute.is_active = False
+        if mute.group:
+            try:
+                permissions = ChatPermissions(
+                    can_send_messages=True,
+                    can_send_media_messages=True,
+                    can_send_polls=True,
+                    can_send_other_messages=True,
+                    can_add_web_page_previews=True
+                )
+                await bot.restrict_chat_member(mute.group.telegram_id, mute.user_telegram_id, permissions)
+            except Exception:
+                pass
+
+    async def expire_kick(self, bot, session, kick: Kick) -> None:
+        kick.is_active = False
+
+    async def expire_ban(self, bot, session, ban: Ban) -> None:
+        ban.is_active = False
+        if ban.group:
+            try:
+                await bot.unban_chat_member(ban.group.telegram_id, ban.user_telegram_id)
+            except Exception:
+                pass
