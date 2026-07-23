@@ -1192,18 +1192,52 @@ async function loadGroupData(groupId = "") {
   }
 }
 
+let currentApiErrorText = "";
+
 function showError(msg) {
   console.error(msg);
+  currentApiErrorText = msg;
   const errorDiv = document.getElementById('api-error-display');
   if (errorDiv) {
     errorDiv.style.display = 'block';
-    errorDiv.textContent = msg;
+    errorDiv.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <div style="flex:1;">
+          <div style="font-weight:700; margin-bottom:4px; font-size:14px; color:var(--danger);">⚠️ Ошибка подключения к API</div>
+          <div style="font-size:12px; opacity:0.95; line-height:1.4; color:var(--text1);">${msg}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button class="btn btn-secondary" style="padding:6px 12px; font-size:11px; background:rgba(239,68,68,0.2); color:#fff; border:1px solid rgba(239,68,68,0.4);" onclick="reportApiErrorToAuthor()">📩 Сообщить автору (@PR1MAY)</button>
+      </div>
+    `;
   }
   const groupSelect = document.getElementById('group-select');
   if (groupSelect) {
     groupSelect.innerHTML = `<option value="">Ошибка загрузки</option>`;
   }
-  document.getElementById('header-title').textContent = "Ошибка API";
+  const headerTitle = document.getElementById('header-title');
+  if (headerTitle) {
+    headerTitle.textContent = "Ошибка API";
+  }
+}
+
+function reportApiErrorToAuthor() {
+  const msg = currentApiErrorText || "Неизвестная ошибка API";
+  const text = `Привет! Ошибка в Mini App:\n\n${msg}`;
+  navigator.clipboard.writeText(text).then(() => {
+    if (tg && tg.openTelegramLink) {
+      tg.openTelegramLink("https://t.me/PR1MAY?text=" + encodeURIComponent(text));
+    } else {
+      window.open("https://t.me/PR1MAY", "_blank");
+    }
+  }).catch(e => {
+    if (tg && tg.openTelegramLink) {
+      tg.openTelegramLink("https://t.me/PR1MAY?text=" + encodeURIComponent(text));
+    } else {
+      window.open("https://t.me/PR1MAY", "_blank");
+    }
+  });
 }
 
 function addBotToGroup() {
@@ -1227,29 +1261,39 @@ async function switchGroup(groupId) {
 // Отрисовка интерфейса
 function render() {
   // Заголовок
-  document.getElementById('header-title').textContent = tg?.initDataUnsafe?.user?.first_name 
-    ? `Привет, ${tg.initDataUnsafe.user.first_name}!` 
-    : "Mini App";
+  const headerTitle = document.getElementById('header-title');
+  if (headerTitle) {
+    headerTitle.textContent = tg?.initDataUnsafe?.user?.first_name 
+      ? `Привет, ${tg.initDataUnsafe.user.first_name}!` 
+      : "Mini App";
+  }
 
   // Список групп в селекторе
   const groupSelect = document.getElementById('group-select');
-  if (appData.groups && appData.groups.length > 0) {
-    groupSelect.innerHTML = appData.groups.map(g => 
-      `<option value="${g.id}" ${g.id === appData.selected_group_id ? 'selected' : ''}>${g.title}</option>`
-    ).join('');
-  } else {
-    groupSelect.innerHTML = '<option value="">Нет управляемых групп</option>';
+  if (groupSelect) {
+    if (appData.groups && appData.groups.length > 0) {
+      groupSelect.innerHTML = appData.groups.map(g => 
+        `<option value="${g.id}" ${g.id === appData.selected_group_id ? 'selected' : ''}>${g.title}</option>`
+      ).join('');
+    } else {
+      groupSelect.innerHTML = '<option value="">Нет управляемых групп</option>';
+    }
   }
 
   // Статистика
-  document.getElementById('stat-violations').textContent = appData.stats.violations;
-  document.getElementById('stat-warnings').textContent = appData.stats.warnings;
-  document.getElementById('stat-mutes').textContent = appData.stats.mutes;
-  document.getElementById('stat-kicks').textContent = appData.stats.kicks;
+  const statV = document.getElementById('stat-violations');
+  if (statV) statV.textContent = appData.stats?.violations ?? 0;
+  const statW = document.getElementById('stat-warnings');
+  if (statW) statW.textContent = appData.stats?.warnings ?? 0;
+  const statM = document.getElementById('stat-mutes');
+  if (statM) statM.textContent = appData.stats?.mutes ?? 0;
+  const statK = document.getElementById('stat-kicks');
+  if (statK) statK.textContent = appData.stats?.kicks ?? 0;
 
   // Переключатель ИИ (Глобальный статус)
   const isAiOn = Boolean(appData.ai_enabled);
-  document.getElementById('toggle-ai').checked = isAiOn;
+  const toggleAiElem = document.getElementById('toggle-ai');
+  if (toggleAiElem) toggleAiElem.checked = isAiOn;
   const aiContainer = document.getElementById('ai-toggle-container');
   if (aiContainer) {
     if (isAiOn) {
@@ -1394,73 +1438,82 @@ function render() {
   }
 
   // Правила (текстовое поле)
-  document.getElementById('rules-textarea').value = appData.rules_raw || "";
+  const rulesTextarea = document.getElementById('rules-textarea');
+  if (rulesTextarea) rulesTextarea.value = appData.rules_raw || "";
 
   // Правила (список тумблеров категорий)
   const rulesList = document.getElementById('rules-toggle-list');
-  if (appData.rules && appData.rules.length > 0) {
-    rulesList.innerHTML = appData.rules.map(r => {
-      if (!r.tag) return "";
-      const isEnabled = appData.enabled_rules[r.tag] !== false;
-      return `
-        <div class="switch-row">
-          <div class="switch-label">
-            <span class="switch-title">${r.num}. ${r.title}</span>
-            <span class="switch-sub">${r.desc.substring(0, 70)}...</span>
+  if (rulesList) {
+    if (appData.rules && appData.rules.length > 0) {
+      rulesList.innerHTML = appData.rules.map(r => {
+        if (!r.tag) return "";
+        const isEnabled = appData.enabled_rules[r.tag] !== false;
+        return `
+          <div class="switch-row">
+            <div class="switch-label">
+              <span class="switch-title">${r.num}. ${r.title}</span>
+              <span class="switch-sub">${r.desc.substring(0, 70)}...</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="toggleRuleCategory('${r.tag}')">
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="toggle-switch">
-            <input type="checkbox" ${isEnabled ? 'checked' : ''} onchange="toggleRuleCategory('${r.tag}')">
-            <span class="slider"></span>
-          </label>
-        </div>
-      `;
-    }).join('');
-  } else {
-    rulesList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">Сначала сохраните правила</div>';
+        `;
+      }).join('');
+    } else {
+      rulesList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">Сначала сохраните правила</div>';
+    }
   }
 
   // Запрещенные слова
   const bannedList = document.getElementById('banned-tags-list');
-  bannedList.innerHTML = (appData.banned_words && appData.banned_words.length > 0)
-    ? appData.banned_words.map(w => `
-        <span class="word-tag">
-          🚫 ${w}
-          <span class="word-tag-remove" onclick="removeWord('${w}', 'banned')">&times;</span>
-        </span>
-      `).join('')
-    : '<div style="color:var(--text2);font-size:12px;padding:6px 0">Список пуст</div>';
+  if (bannedList) {
+    bannedList.innerHTML = (appData.banned_words && appData.banned_words.length > 0)
+      ? appData.banned_words.map(w => `
+          <span class="word-tag">
+            🚫 ${w}
+            <span class="word-tag-remove" onclick="removeWord('${w}', 'banned')">&times;</span>
+          </span>
+        `).join('')
+      : '<div style="color:var(--text2);font-size:12px;padding:6px 0">Список пуст</div>';
+  }
 
   // Исключения
   const excList = document.getElementById('exception-tags-list');
-  excList.innerHTML = (appData.exception_words && appData.exception_words.length > 0)
-    ? appData.exception_words.map(w => `
-        <span class="word-tag">
-          ✅ ${w}
-          <span class="word-tag-remove" onclick="removeWord('${w}', 'exception')">&times;</span>
-        </span>
-      `).join('')
-    : '<div style="color:var(--text2);font-size:12px;padding:6px 0">Список пуст</div>';
+  if (excList) {
+    excList.innerHTML = (appData.exception_words && appData.exception_words.length > 0)
+      ? appData.exception_words.map(w => `
+          <span class="word-tag">
+            ✅ ${w}
+            <span class="word-tag-remove" onclick="removeWord('${w}', 'exception')">&times;</span>
+          </span>
+        `).join('')
+      : '<div style="color:var(--text2);font-size:12px;padding:6px 0">Список пуст</div>';
+  }
 
   // Рейтинг дуэлянтов
   const leaderboardList = document.getElementById('leaderboard-list');
-  if (appData.leaderboard && appData.leaderboard.length > 0) {
-    leaderboardList.innerHTML = appData.leaderboard.map((p, idx) => {
-      const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `<span>#${idx + 1}</span>`;
-      return `
-        <div class="list-item" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--card-bg)">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div style="font-size:18px;min-width:24px;text-align:center">${medal}</div>
-            <div>
-              <div style="font-weight:600;font-size:14px;color:var(--text1)">${p.name}</div>
-              <div style="font-size:12px;color:var(--text2)">Игр: ${p.total} | Винрейт: ${p.win_rate}%</div>
+  if (leaderboardList) {
+    if (appData.leaderboard && appData.leaderboard.length > 0) {
+      leaderboardList.innerHTML = appData.leaderboard.map((p, idx) => {
+        const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `<span>#${idx + 1}</span>`;
+        return `
+          <div class="list-item" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--card-bg)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:18px;min-width:24px;text-align:center">${medal}</div>
+              <div>
+                <div style="font-weight:600;font-size:14px;color:var(--text1)">${p.name}</div>
+                <div style="font-size:12px;color:var(--text2)">Игр: ${p.total} | Винрейт: ${p.win_rate}%</div>
+              </div>
             </div>
+            <span class="badge badge-success" style="background:rgba(16,185,129,0.1);color:var(--success);padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600">${p.wins} побед</span>
           </div>
-          <span class="badge badge-success" style="background:rgba(16,185,129,0.1);color:var(--success);padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600">${p.wins} побед</span>
-        </div>
-      `;
-    }).join('');
-  } else {
-    leaderboardList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">Игр пока не было. Начните дуэль! ⚔️</div>';
+        `;
+      }).join('');
+    } else {
+      leaderboardList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">Игр пока не было. Начните дуэль! ⚔️</div>';
+    }
   }
 }
 
