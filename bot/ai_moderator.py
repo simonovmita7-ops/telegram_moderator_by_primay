@@ -184,30 +184,36 @@ class AiModerator:
                 reason=f"Ошибка ИИ ({provider}): {exc}", recommended_action="none", raw_response={"error": str(exc)})
 
     async def _call_any_fallback(self, user_prompt, system_prompt):
-        """Резервный перебор всех настроенных провайдеров."""
+        """Резервный перебор основных провайдеров, а при их сбое — вызов экстренного SambaNova."""
         for provider_func, name in [
             (self._call_groq, "Groq"),
-            (self._call_sambanova, "SambaNova"),
             (self._call_gemini, "Gemini")
         ]:
             try:
                 return await provider_func(user_prompt, system_prompt)
             except Exception as exc:
                 logger.warning("[AI Fallback] %s недоступен: %s", name, exc)
-        raise ValueError("Все ИИ провайдеры недоступны")
+
+        # Если основные провайдеры упали — задействуем экстренный SambaNova
+        if getattr(self._settings, "sambanova_api_key", None):
+            try:
+                logger.info("[AI Emergency] Основные ИИ недоступны, подключаем экстренный резерв SambaNova...")
+                return await self._call_sambanova(user_prompt, system_prompt)
+            except Exception as exc:
+                logger.warning("[AI Emergency] SambaNova недоступен: %s", exc)
+
+        raise ValueError("Все ИИ провайдеры (включая экстренный резерв) недоступны")
 
     async def _call_multi_race(self, user_prompt, system_prompt):
-        """Параллельный запуск всех настроенных провайдеров — возвращает первый успешный ответ."""
+        """Параллельный запуск основных провайдеров (Gemini, Groq) — возвращает первый успешный ответ."""
         tasks = []
         if getattr(self._settings, "groq_api_key", None):
             tasks.append(asyncio.create_task(self._call_groq(user_prompt, system_prompt)))
-        if getattr(self._settings, "sambanova_api_key", None):
-            tasks.append(asyncio.create_task(self._call_sambanova(user_prompt, system_prompt)))
         if getattr(self._settings, "gemini_api_key", None):
             tasks.append(asyncio.create_task(self._call_gemini(user_prompt, system_prompt)))
 
         if not tasks:
-            raise ValueError("Нет настроенных ключей ИИ для мульти-режима")
+            raise ValueError("Нет настроенных основных ключей ИИ для мульти-режима")
 
         pending = tasks
         last_error = None

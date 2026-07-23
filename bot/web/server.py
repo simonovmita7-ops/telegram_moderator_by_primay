@@ -359,8 +359,8 @@ async def handle_set_ai_provider(request):
         req_data = await request.json()
         group_tg_id = int(req_data.get("group_id"))
         provider = str(req_data.get("provider", "gemini")).lower()
-        if provider not in ("gemini", "groq", "sambanova", "multi"):
-            return web.json_response({"error": "Неверный провайдер ИИ"}, status=400)
+        if provider not in ("gemini", "groq", "multi"):
+            return web.json_response({"error": "Неверный провайдер ИИ (SambaNova доступен только как экстренный резерв)"}, status=400)
 
         db = request.app.get("db")
         async with db.session() as session:

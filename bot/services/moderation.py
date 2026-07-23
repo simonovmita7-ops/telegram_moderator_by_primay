@@ -45,17 +45,20 @@ class ModerationService:
         return ""
 
     async def cache_message(self, session, group_db_id, user_id, username, text, message_id, max_cache=50):
-        entry = ChatMessageCache(
-            group_id=group_db_id, user_telegram_id=user_id,
-            username=username, text=text[:2000], message_id=message_id)
-        session.add(entry)
-        await session.flush()
-        subq = (select(ChatMessageCache.id)
-                .where(ChatMessageCache.group_id == group_db_id)
-                .order_by(ChatMessageCache.created_at.desc()).offset(max_cache))
-        old_ids = (await session.execute(subq)).scalars().all()
-        if old_ids:
-            await session.execute(delete(ChatMessageCache).where(ChatMessageCache.id.in_(old_ids)))
+        try:
+            entry = ChatMessageCache(
+                group_id=group_db_id, user_telegram_id=user_id,
+                username=username, text=text[:2000], message_id=message_id)
+            session.add(entry)
+            await session.flush()
+            subq = (select(ChatMessageCache.id)
+                    .where(ChatMessageCache.group_id == group_db_id)
+                    .order_by(ChatMessageCache.created_at.desc()).offset(max_cache))
+            old_ids = (await session.execute(subq)).scalars().all()
+            if old_ids:
+                await session.execute(delete(ChatMessageCache).where(ChatMessageCache.id.in_(old_ids)))
+        except Exception as exc:
+            logger.debug("Не удалось кэшировать сообщение (SQLite занят): %s", exc)
 
     async def get_context_messages(self, session, group_db_id, limit=20):
         result = await session.execute(

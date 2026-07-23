@@ -1042,13 +1042,14 @@
         <div class="provider-desc">Сверхбыстрая модель с мгновенным откликом</div>
       </div>
 
-      <!-- Снизу справа: SambaNova Llama -->
-      <div class="provider-card" id="provider-sambanova" onclick="selectAiProvider('sambanova')">
+      <!-- Снизу справа: SambaNova Llama — только экстренный резерв -->
+      <div class="provider-card provider-card-emergency" id="provider-sambanova" style="opacity:0.45; cursor:not-allowed; pointer-events:none; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:6px; right:6px; background:rgba(255,160,0,0.18); border:1px solid rgba(255,160,0,0.45); border-radius:6px; padding:2px 7px; font-size:9px; font-weight:700; color:#ffa000; letter-spacing:0.5px;">⚠ РЕЗЕРВ</div>
         <div class="provider-card-header">
-          <div class="provider-name">SambaNova Llama</div>
-          <div class="provider-radio"></div>
+          <div class="provider-name" style="color:rgba(255,255,255,0.5);">SambaNova Llama</div>
+          <div class="provider-radio" style="opacity:0;"></div>
         </div>
-        <div class="provider-desc">Мощная флагманская нейросеть уровня GPT-4o</div>
+        <div class="provider-desc" style="color:rgba(255,255,255,0.35);">Только экстренный резерв — подключается автоматически когда Gemini и Groq недоступны</div>
       </div>
 
     </div>

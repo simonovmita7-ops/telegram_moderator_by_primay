@@ -22,7 +22,7 @@ class Database:
     def __init__(self, settings) -> None:
         connect_args = {}
         if "sqlite" in settings.database_url:
-            connect_args["timeout"] = 15.0
+            connect_args["timeout"] = 30.0
 
         self._engine = create_async_engine(settings.database_url, echo=False, connect_args=connect_args)
 
@@ -31,7 +31,8 @@ class Database:
             def set_sqlite_pragma(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA journal_mode=WAL;")
-                cursor.execute("PRAGMA busy_timeout=15000;")
+                cursor.execute("PRAGMA busy_timeout=30000;")
+                cursor.execute("PRAGMA synchronous=NORMAL;")
                 cursor.close()
 
         self._session_factory = async_sessionmaker(
