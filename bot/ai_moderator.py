@@ -258,24 +258,32 @@ class AiModerator:
         api_key = getattr(self._settings, "groq_api_key", None)
         if not api_key: raise ValueError("GROQ_API_KEY не задан")
         model = getattr(self._settings, "groq_model", "llama-3.3-70b-versatile")
-        r = await self._client.post("https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": model,
-                  "messages": [{"role": "system", "content": system_prompt},
-                               {"role": "user", "content": user_prompt}],
-                  "temperature": 0.1, "response_format": {"type": "json_object"}})
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"]
+        delay = 2.0
+        for attempt in range(1, 4):
+            r = await self._client.post("https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": model,
+                      "messages": [{"role": "system", "content": system_prompt},
+                                   {"role": "user", "content": user_prompt}],
+                      "temperature": 0.1, "response_format": {"type": "json_object"}})
+            if r.status_code == 429 and attempt < 3:
+                await asyncio.sleep(delay); delay *= 2; continue
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]
 
     async def _call_sambanova(self, user_prompt, system_prompt):
         api_key = getattr(self._settings, "sambanova_api_key", None)
         if not api_key: raise ValueError("SAMBANOVA_API_KEY не задан")
-        model = getattr(self._settings, "sambanova_model", "Meta-Llama-3.1-405B-Instruct")
-        r = await self._client.post("https://api.sambanova.ai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": model,
-                  "messages": [{"role": "system", "content": system_prompt},
-                               {"role": "user", "content": user_prompt}],
-                  "temperature": 0.1, "response_format": {"type": "json_object"}})
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"]
+        model = getattr(self._settings, "sambanova_model", "Meta-Llama-3.3-70B-Instruct")
+        delay = 2.0
+        for attempt in range(1, 4):
+            r = await self._client.post("https://api.sambanova.ai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": model,
+                      "messages": [{"role": "system", "content": system_prompt},
+                                   {"role": "user", "content": user_prompt}],
+                      "temperature": 0.1, "response_format": {"type": "json_object"}})
+            if r.status_code == 429 and attempt < 3:
+                await asyncio.sleep(delay); delay *= 2; continue
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"]
