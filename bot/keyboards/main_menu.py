@@ -21,7 +21,10 @@ def back_to_main_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Главное меню", callback_data="menu:main")]])
 
 
-def groups_list_keyboard(groups: list[tuple[int, str]]) -> InlineKeyboardMarkup:
+def groups_list_keyboard(groups: list[tuple[int, str]], bot_username: str = "GControlsBot") -> InlineKeyboardMarkup:
     rows = [[InlineKeyboardButton(title[:40], callback_data=f"group:{tg_id}")] for tg_id, title in groups]
+    username = bot_username or "GControlsBot"
+    url = f"https://t.me/{username}?startgroup=true"
+    rows.append([InlineKeyboardButton("➕ Добавить бота в группу", url=url)])
     rows.append([InlineKeyboardButton("◀️ Главное меню", callback_data="menu:main")])
     return InlineKeyboardMarkup(rows)

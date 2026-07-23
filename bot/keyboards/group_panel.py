@@ -15,7 +15,6 @@ def group_panel_keyboard(group_telegram_id: int) -> InlineKeyboardMarkup:
          InlineKeyboardButton("🚪 Кики", callback_data=f"gp:{group_telegram_id}:kicks")],
         [InlineKeyboardButton("🧠 ИИ-модерация", callback_data=f"gp:{group_telegram_id}:ai"),
          InlineKeyboardButton("📊 Статистика", callback_data=f"gp:{group_telegram_id}:gstats")],
-        [InlineKeyboardButton("👮 Администраторы", callback_data=f"gp:{group_telegram_id}:admins")],
         [InlineKeyboardButton("◀️ Мои группы", callback_data="menu:groups")],
     ])
 

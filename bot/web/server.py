@@ -196,6 +196,7 @@ async def handle_api_data(request):
                 "banned_words": gs.banned_words or [],
                 "exception_words": gs.exception_words or [],
                 "ai_enabled": gs.ai_enabled,
+                "ai_provider": getattr(gs, "ai_provider", "gemini") or "gemini",
                 "enabled_rules": gs.enabled_rules or {},
                 "has_custom_rules": gs.rules_text is not None and len(gs.rules_text.strip()) > 0,
                 "leaderboard": leaderboard[:10],  # Топ-10
@@ -347,6 +348,30 @@ async def handle_toggle_ai(request):
         return web.json_response({"error": str(e)}, status=400)
 
 
+async def handle_set_ai_provider(request):
+    try:
+        req_data = await request.json()
+        group_tg_id = int(req_data.get("group_id"))
+        provider = str(req_data.get("provider", "gemini")).lower()
+        if provider not in ("gemini", "groq", "deepseek", "openai", "chatgpt"):
+            return web.json_response({"error": "Неверный провайдер ИИ"}, status=400)
+
+        db = request.app.get("db")
+        async with db.session() as session:
+            user_id, group = await verify_user_and_group(session, request, group_tg_id)
+            if not group:
+                return web.json_response({"error": "Доступ запрещён"}, status=403)
+                
+            from bot.services.settings_service import SettingsService
+            gs_svc = SettingsService()
+            gs = await gs_svc.get_or_create(session, group.id)
+            gs.ai_provider = provider
+            await session.flush()
+            return web.json_response({"success": True, "ai_provider": gs.ai_provider})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=400)
+
+
 def _parse_rules(text: str) -> list[dict]:
     """Парсим правила в структурированный список."""
     rules = []
@@ -443,6 +468,7 @@ async def create_app(db=None, rules_loader=None, bot=None, settings=None) -> web
     app.router.add_post("/api/miniapp/remove_word", handle_remove_word)
     app.router.add_post("/api/miniapp/set_rules_text", handle_set_rules_text)
     app.router.add_post("/api/miniapp/toggle_ai", handle_toggle_ai)
+    app.router.add_post("/api/miniapp/set_ai_provider", handle_set_ai_provider)
     
     app.router.add_static("/static", STATIC_DIR)
 

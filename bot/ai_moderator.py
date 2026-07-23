@@ -1,5 +1,5 @@
 """
-ИИ-модератор: анализ сообщений через Google Gemini, OpenAI или Claude API.
+ИИ-модератор: анализ сообщений через Google Gemini или Groq Cloud API.
 Работает СТРОГО по правилам из файла правила.txt. Без встроенной чувствительности.
 """
 from __future__ import annotations
@@ -123,7 +123,8 @@ class AiModerator:
 
     async def analyze(self, message_text, context_messages, violation_history,
                        rules_text="", banned_words=None, exception_words=None,
-                       is_poll=False, poll_question="", poll_options=None):
+                       is_poll=False, poll_question="", poll_options=None,
+                       provider="gemini"):
         system_prompt = build_system_prompt(rules_text if rules_text else
             "Запрещены: оскорбления, спам, угрозы, реклама, насилие, порнография.")
         user_prompt = _build_user_prompt(
@@ -131,18 +132,22 @@ class AiModerator:
             banned_words or [], exception_words or [],
             is_poll, poll_question, poll_options)
         try:
-            if self._settings.ai_provider == "gemini":
-                raw_text = await self._call_gemini(user_prompt, system_prompt)
-            elif self._settings.ai_provider == "openai":
-                raw_text = await self._call_openai(user_prompt, system_prompt)
+            p = (provider or "gemini").lower()
+            if p == "groq":
+                try:
+                    raw_text = await self._call_groq(user_prompt, system_prompt)
+                except Exception as exc:
+                    logger.warning("[AI] Groq недоступен, фоллбек на Gemini: %s", exc)
+                    raw_text = await self._call_gemini(user_prompt, system_prompt)
             else:
-                raw_text = await self._call_claude(user_prompt, system_prompt)
+                raw_text = await self._call_gemini(user_prompt, system_prompt)
+
             data = _parse_ai_json(raw_text)
             return _normalize_result(data)
         except Exception as exc:
             logger.warning("[AI] Предупреждение / ошибка: %s", exc)
             return AiModerationResult(violation=False, category="none", severity=0,
-                reason=f"Ошибка ИИ: {exc}", recommended_action="none", raw_response={"error": str(exc)})
+                reason=f"Ошибка ИИ ({provider}): {exc}", recommended_action="none", raw_response={"error": str(exc)})
 
     async def _call_gemini(self, user_prompt, system_prompt):
         api_key = getattr(self._settings, "gemini_api_key", None)
@@ -171,29 +176,15 @@ class AiModerator:
                 raise ValueError(f"Контент Gemini заблокирован или пуст (код завершения: {finish_reason})")
             return parts[0].get("text", "")
 
-    async def _call_openai(self, user_prompt, system_prompt):
-        api_key = self._settings.openai_api_key
-        if not api_key: raise ValueError("OPENAI_API_KEY не задан")
-        delay = 2.0
-        for attempt in range(1, 4):
-            r = await self._client.post("https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"model": self._settings.openai_model,
-                      "messages": [{"role": "system", "content": system_prompt},
-                                   {"role": "user", "content": user_prompt}],
-                      "temperature": 0.1, "response_format": {"type": "json_object"}})
-            if r.status_code == 429 and attempt < 3:
-                await asyncio.sleep(float(r.headers.get("retry-after", delay))); delay *= 2; continue
-            r.raise_for_status()
-            return r.json()["choices"][0]["message"]["content"]
-
-    async def _call_claude(self, user_prompt, system_prompt):
-        api_key = self._settings.claude_api_key
-        if not api_key: raise ValueError("CLAUDE_API_KEY не задан")
-        r = await self._client.post("https://api.anthropic.com/v1/messages",
-            headers={"x-api-key": api_key, "anthropic-version": "2023-06-01",
-                     "Content-Type": "application/json"},
-            json={"model": self._settings.claude_model, "max_tokens": 1024,
-                  "system": system_prompt, "messages": [{"role": "user", "content": user_prompt}]})
+    async def _call_groq(self, user_prompt, system_prompt):
+        api_key = getattr(self._settings, "groq_api_key", None)
+        if not api_key: raise ValueError("GROQ_API_KEY не задан")
+        model = getattr(self._settings, "groq_model", "llama-3.3-70b-versatile")
+        r = await self._client.post("https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model,
+                  "messages": [{"role": "system", "content": system_prompt},
+                               {"role": "user", "content": user_prompt}],
+                  "temperature": 0.1, "response_format": {"type": "json_object"}})
         r.raise_for_status()
-        return r.json()["content"][0]["text"]
+        return r.json()["choices"][0]["message"]["content"]

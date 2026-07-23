@@ -93,6 +93,7 @@ class GroupSettings(Base):
     default_kick_duration: Mapped[int] = mapped_column(Integer, default=86400)
     ai_sensitivity: Mapped[int] = mapped_column(Integer, default=3)
     ai_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    ai_provider: Mapped[str] = mapped_column(String(32), default="gemini")
     spam_message_limit: Mapped[int] = mapped_column(Integer, default=15)
     spam_window_seconds: Mapped[int] = mapped_column(Integer, default=60)
     banned_words: Mapped[list[str]] = mapped_column(JSON, default=list)
@@ -215,3 +216,23 @@ class ChatMessageCache(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     message_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class DuelRecord(Base):
+    __tablename__ = "duel_records"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"), nullable=False)
+    winner_telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    winner_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    loser_telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    loser_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_suicide: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class UserStartStatus(Base):
+    __tablename__ = "user_start_statuses"
+    user_telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    first_start_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+

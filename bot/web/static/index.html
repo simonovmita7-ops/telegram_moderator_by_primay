@@ -539,6 +539,73 @@
     border-color: rgba(0, 229, 201, 0.3);
   }
 
+  /* ===== PROVIDER SELECTOR ===== */
+  .provider-cards-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .provider-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .provider-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .provider-card.active {
+    background: rgba(0, 229, 201, 0.08);
+    border-color: var(--accent2);
+    box-shadow: 0 4px 20px rgba(0, 229, 201, 0.15);
+  }
+  .provider-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .provider-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .provider-desc {
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .provider-radio {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+  .provider-card.active .provider-radio {
+    border-color: var(--accent2);
+    background: var(--accent2);
+  }
+  .provider-card.active .provider-radio::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #000000;
+  }
+
   /* ===== LOADING ===== */
   .loading-overlay {
     display: none;
@@ -720,6 +787,30 @@
         <input type="checkbox" id="toggle-ai" onchange="toggleAi()">
         <span class="slider"></span>
       </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>🤖</span>Выбор провайдера ИИ</div>
+    <p style="font-size: 12px; color: var(--text2); margin-top: 4px; margin-bottom: 8px;">Выберите нейросеть для быстрой и точной модерации:</p>
+    <div class="provider-cards-grid">
+      
+      <div class="provider-card" id="provider-groq" onclick="selectAiProvider('groq')">
+        <div class="provider-info">
+          <div class="provider-name">Groq Llama-3</div>
+          <div class="provider-desc">Сверхбыстрые LPU-чипы и мгновенный анализ (800 токенов/сек)</div>
+        </div>
+        <div class="provider-radio"></div>
+      </div>
+
+      <div class="provider-card" id="provider-gemini" onclick="selectAiProvider('gemini')">
+        <div class="provider-info">
+          <div class="provider-name">Google Gemini</div>
+          <div class="provider-desc">Умный и стабильный нейронный движок от Google</div>
+        </div>
+        <div class="provider-radio"></div>
+      </div>
+
     </div>
   </div>
 
@@ -968,6 +1059,19 @@ function render() {
     }
   }
 
+  // Провайдер ИИ
+  const currentProvider = (appData.ai_provider || 'gemini').toLowerCase();
+  ['gemini', 'groq'].forEach(p => {
+    const card = document.getElementById('provider-' + p);
+    if (card) {
+      if (p === currentProvider) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    }
+  });
+
   // Ошибки ИИ
   const aiErrorsList = document.getElementById('ai-errors-list');
   if (aiErrorsList) {
@@ -1129,6 +1233,42 @@ async function toggleAi() {
     console.error(e);
     // Откат
     appData.ai_enabled = !appData.ai_enabled;
+    render();
+  }
+}
+
+// Выбор провайдера ИИ
+async function selectAiProvider(provider) {
+  if (!appData.selected_group_id) return;
+  const currentProvider = (appData.ai_provider || 'gemini').toLowerCase();
+  if (currentProvider === provider) return;
+
+  const previousProvider = appData.ai_provider;
+  appData.ai_provider = provider;
+  render();
+
+  try {
+    const r = await fetch(`${API_BASE}/api/miniapp/set_ai_provider`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ group_id: appData.selected_group_id, provider: provider })
+    });
+    if (r.ok) {
+      const data = await r.json();
+      if (data.success) {
+        appData.ai_provider = data.ai_provider;
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      } else {
+        appData.ai_provider = previousProvider;
+        render();
+      }
+    } else {
+      appData.ai_provider = previousProvider;
+      render();
+    }
+  } catch (e) {
+    console.error(e);
+    appData.ai_provider = previousProvider;
     render();
   }
 }

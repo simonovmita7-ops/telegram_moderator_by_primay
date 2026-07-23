@@ -140,6 +140,7 @@ class ModerationService:
             is_poll=is_poll,
             poll_question=poll_question,
             poll_options=poll_options,
+            provider=getattr(gs, "ai_provider", "gemini") or "gemini"
         )
 
         # Сохраняем решение ИИ
